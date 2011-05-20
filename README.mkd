@@ -1,0 +1,5 @@
+For CodeCatalog, we want our code editing experience to be badass. As in,
+automatically detecting dependencies, contextual autocompleting, syntax
+checking, ...  That means we have to parse and *understand* (that is, actually
+build a syntax tree) for the code as you are editing it.  Traditional parsing
+frameworks are not great at handling partially-complete input. Thus *jsexp*.
