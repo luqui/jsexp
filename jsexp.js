@@ -38,6 +38,16 @@ var maximum_by = function(measure, xs) {
 };
 // End CodeCatalog Snippet
 
+// CodeCatalog Snippet http://www.codecatalog.net/32/2/
+var max = function() {
+    var r = arguments[0];
+    for (var i = 1; i < arguments.length; ++i) {
+        if (arguments[i] > r) r = arguments[i];
+    }
+    return r;
+};
+// End CodeCatalog Snippet
+
 
 // A grammar is a hash of LoLs.  Each key is a nonterminal, and each value is
 // a disjunction of juxtapositions of symbols.  A symbol can be:
@@ -61,39 +71,39 @@ var DotProduction = function(prod, dot) {
     this.pretty = function() { return prod.lhs + " ::= " + prod.rhss.slice(0,dot).join(' ') + " * " + prod.rhss.slice(dot).join(' ') };
 };
 
-var State = function(dotprod) {
+var State = function(dotprod, predictFrom) {
     this.dotprod = dotprod;
     this.completed = [];
-    this.predictFrom = [];
-    this.scanFrom = [];
+    this.predictFrom = predictFrom || [];
 
-    this.add_predict = function(source) {
-        this.predictFrom.push(source);
-        return this;
-    };
-    this.add_scan = function(source, token) {
-        this.scanFrom.push({ source: source, token: token });
-        return this;
-    };
-    this.add_complete = function(source, value) {
-        if ((this.dotprod.dot-1) in this.completed) {
-            console.log("Completed from more than one place, not sure what to do");
-        }
-        this.completed[dotprod.dot-1] = value;
-        return this;
+    this.toString = function() { 
+        return this.dotprod.pretty();
     };
 
     this.scan = function(token) {
         if (this.dotprod.focus(token)) {
-            return new State(this.dotprod.advance()).add_scan(this, token);
+            return this.advance(token);
         }
         else {
             return null;
         }
     };
 
-    this.toString = function() { 
-        return this.dotprod.pretty();
+    this.advance = function(value) {
+        var newstate = new State(this.dotprod.advance());
+        newstate.completed = this.completed.slice(0);
+        newstate.completed[newstate.dotprod.dot-1] = value;
+        newstate.predictFrom = this.predictFrom;
+        return newstate;
+    };
+
+    this.nom = function(other_state) {
+        foreach(other_state.predictFrom, function(s) { this.predictFrom.push(s) }); // XXX can there be overlap?
+        var maxix = max(this.completed.length, other_state.completed.length);
+        for (var i = 0; i < maxix; i++) {
+            // TODO what if they are both defined and disagree?
+            this.completed[i] = i in this.completed ? this.completed[i] : other_state.completed[i];
+        }
     };
 };
 
@@ -114,26 +124,23 @@ var make_state_set = function(grammar, initial_states) {
     var scans = [];
     var queue = [];
 
-    var add_state = function(dotprod) {
-        if (dotprod in stateset) {
-            var newstate = stateset[dotprod];
+    var add_state = function(state) {
+        if (state.dotprod in stateset) {
+            var newstate = stateset[state.dotprod].nom(state);
         }
         else {
-            var newstate = new State(dotprod);
-            queue.push(newstate);
-            stateset[dotprod] = newstate;
+            queue.push(state);
+            stateset[state.dotprod] = state;
         }
-        return newstate;
     };
 
     var visit_state = function(state) {
         console.log("Visiting state " + state);
         var symbol = state.dotprod.focus;
         if (typeof(symbol) === 'string') {       // nonterminal: predict
-            console.log("Predict");
             foreach(grammar[symbol], function(prod) {
                 var dp = new DotProduction(prod, 0);
-                add_state(dp).add_predict(state);
+                add_state(new State(dp, [state]));
             });
         }
         else if (typeof(symbol) === 'function') { // terminal: scan
@@ -144,7 +151,7 @@ var make_state_set = function(grammar, initial_states) {
             console.log("Complete");
             var value = new Sexp(state.dotprod.prod.lhs, state.completed);
             foreach(state.predictFrom, function(pstate) {
-                add_state(pstate.dotprod.advance()).add_complete(pstate, value);
+                add_state(pstate.advance());
             });
         }
         else {
@@ -152,7 +159,7 @@ var make_state_set = function(grammar, initial_states) {
         }
     };
 
-    foreach(initial_states, function(s) { queue.push(s) });
+    foreach(initial_states, add_state);
 
     while (queue.length > 0) { 
         var e = queue.pop();  // er, shift?
