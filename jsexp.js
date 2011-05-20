@@ -113,13 +113,6 @@ var Sexp = function(head, args) {
     this.args = args;
 };
 
-// target : DotProduction
-// action : State -> Action
-var Transition = function(target, action) {
-    this.target = target;
-    this.action = action;
-};
-
 var make_state_set = function(grammar, initial_states) {
     var stateset = {};
     var scans = [];
