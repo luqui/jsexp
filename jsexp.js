@@ -6,11 +6,11 @@ var foreach = function(array, body) {
 };
 // End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/323/1/
+// CodeCatalog Snippet http://www.codecatalog.net/323/2/
 var for_kv = function(object, body) {
-    for (var i in object) {
-        if (object.hasOwnProperty(i)) {
-            body(i, object[i]);
+    for (var k in object) {
+        if (object.hasOwnProperty(k)) {
+            body(k, object[k]);
         }
     }
 };
@@ -98,7 +98,8 @@ var State = function(dotprod, predictFrom) {
     };
 
     this.nom = function(other_state) {
-        foreach(other_state.predictFrom, function(s) { this.predictFrom.push(s) }); // XXX can there be overlap?
+        var self = this;  // ugh javascript
+        foreach(other_state.predictFrom, function(s) { self.predictFrom.push(s) }); // XXX can there be overlap?
         var maxix = max(this.completed.length, other_state.completed.length);
         for (var i = 0; i < maxix; i++) {
             // TODO what if they are both defined and disagree?
@@ -135,7 +136,7 @@ var make_state_set = function(grammar, initial_states) {
     };
 
     var visit_state = function(state) {
-        console.log("Visiting state " + state);
+        console.log(state.toString());
         var symbol = state.dotprod.focus;
         if (typeof(symbol) === 'string') {       // nonterminal: predict
             foreach(grammar[symbol], function(prod) {
@@ -144,11 +145,9 @@ var make_state_set = function(grammar, initial_states) {
             });
         }
         else if (typeof(symbol) === 'function') { // terminal: scan
-            console.log("Scan");
             scans.push(state);
         }
         else if (typeof(symbol) === 'undefined') { // end: complete
-            console.log("Complete");
             var value = new Sexp(state.dotprod.prod.lhs, state.completed);
             foreach(state.predictFrom, function(pstate) {
                 add_state(pstate.advance());
@@ -162,7 +161,7 @@ var make_state_set = function(grammar, initial_states) {
     foreach(initial_states, add_state);
 
     while (queue.length > 0) { 
-        var e = queue.pop();  // er, shift?
+        var e = queue.splice(0,1)[0];  // remove from beginning
         visit_state(e);
     }
 
@@ -192,6 +191,8 @@ var Simulator = function(grammar, startsym) {
                 consumes.push(match);
             }
         });
+    
+        if (consumes.length == 0) { throw "No input could be consumed" }
 
         console.log("-----------");
         this.stateset = make_state_set(grammar, consumes);
@@ -199,11 +200,15 @@ var Simulator = function(grammar, startsym) {
 };
 
 var testgrammar = make_grammar({
-    'E': [ [ 'top' ] ],
-    'top': [ [ 'foo', 'foo' ] ],
-    'foo': [ [ /^x/ ] ],
+    'E': [ [ 'eplus' ] ],
+    'eplus': [ [ 'etimes' ], [ 'eplus', /^\+/, 'etimes' ] ], 
+    'etimes': [ [ 'eatom' ], [ 'etimes', /^\*/, 'eatom' ] ],
+    'eatom': [ [ /^\d+/ ], [ /^\(/, 'eplus', /^\)/ ] ],
 });
 
 var sim = new Simulator(testgrammar, 'E');
-sim.consume('x');
-sim.consume('x');
+sim.consume('1');
+sim.consume('*');
+sim.consume('2');
+sim.consume('+');
+sim.consume('3');
