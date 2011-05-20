@@ -111,6 +111,7 @@ var State = function(dotprod, predictFrom) {
 var Sexp = function(head, args) {
     this.head = head;
     this.args = args;
+    this.toString = function() { return this.head + "(" + this.args + ")" };
 };
 
 var make_state_set = function(grammar, initial_states) {
@@ -130,6 +131,11 @@ var make_state_set = function(grammar, initial_states) {
 
     var visit_state = function(state) {
         console.log(state.toString());
+
+        //if (state.dotprod.prod.lhs == 'E') {
+        //    console.log(state);
+        //}
+
         var symbol = state.dotprod.focus;
         if (typeof(symbol) === 'string') {       // nonterminal: predict
             foreach(grammar[symbol], function(prod) {
@@ -142,8 +148,9 @@ var make_state_set = function(grammar, initial_states) {
         }
         else if (typeof(symbol) === 'undefined') { // end: complete
             var value = new Sexp(state.dotprod.prod.lhs, state.completed);
+            console.log("   --> " + value);
             foreach(state.predictFrom, function(pstate) {
-                add_state(pstate.advance());
+                add_state(pstate.advance(value));
             });
         }
         else {
