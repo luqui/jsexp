@@ -111,7 +111,7 @@ var State = function(dotprod, predictFrom) {
 var Sexp = function(head, args) {
     this.head = head;
     this.args = args;
-    this.toString = function() { return this.head + "(" + this.args + ")" };
+    this.toString = function() { return "(" + this.head + " " + this.args.join(' ') + ")" };
 };
 
 var make_state_set = function(grammar, initial_states) {
