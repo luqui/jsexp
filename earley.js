@@ -48,6 +48,32 @@ var max = function() {
 };
 // End CodeCatalog Snippet
 
+// CodeCatalog Snippet http://www.codecatalog.net/328/1/
+var terminal_path = function(root, children) {
+    var traverse = function(x) {
+        var r = [];
+        while (x) {
+            r.push(x.node);
+            x = x.pred;
+        }
+        return r.reverse();
+    };
+    
+    var queue = [{node: root, pred: null}];
+    while (queue.length > 0) {
+        var e = queue.splice(0,1)[0];
+        var ch = children(e.node);
+        if (ch.length == 0) {
+            return traverse(e);
+        }
+        else {
+            foreach(ch, function(c) { queue.push({ node: c, pred: e }) });
+        }
+    }
+    throw "How ever did we get here?";
+};
+// End CodeCatalog Snippet
+
 
 // A grammar is a hash of LoLs.  Each key is a nonterminal, and each value is
 // a disjunction of juxtapositions of symbols.  A symbol can be:
@@ -105,6 +131,11 @@ var State = function(dotprod, predictFrom) {
             // TODO what if they are both defined and disagree?  (ambiguous grammar)
             this.completed[i] = i in this.completed ? this.completed[i] : other_state.completed[i];
         }
+    };
+
+    this.context = function() {
+        return terminal_path(this, function(x) { return x.predictFrom })
+                 .map(function(x) { return new Sexp(x.dotprod.prod.lhs, x.completed) });
     };
 };
 
@@ -185,6 +216,10 @@ var Simulator = function(grammar, startsym) {
             var match = state.scan(str);
             if (match) {
                 consumes.push(match);
+                console.log();
+                console.log("CONTEXT");
+                console.log("-------");
+                console.log(match.context().join('\n'));
             }
         });
     
