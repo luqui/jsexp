@@ -124,15 +124,6 @@ var State = object({
         return this.dotprod.pretty();
     },
 
-    scan: function(token) {
-        if (this.dotprod.focus()(token)) {
-            return this.advance(token);
-        }
-        else {
-            return null;
-        }
-    },
-
     advance: function(value) {
         var newstate = new State(this.dotprod.advance());
         newstate.completed = this.completed.slice(0);
@@ -166,18 +157,11 @@ var Sexp = object({
 });
 
 var make_state_set = function(grammar, initial_states) {
-    var stateset = {};
     var scans = [];
     var queue = [];
 
     var add_state = function(state) {
-        if (state.dotprod in stateset) {
-            var newstate = stateset[state.dotprod].nom(state);
-        }
-        else {
-            queue.push(state);
-            stateset[state.dotprod] = state;
-        }
+        queue.push(state);
     };
 
     var visit_state = function(state) {
@@ -204,9 +188,11 @@ var make_state_set = function(grammar, initial_states) {
 
     foreach(initial_states, add_state);
 
+    var count = 0;
     while (queue.length > 0) { 
         var e = queue.splice(0,1)[0];  // remove from beginning
         visit_state(e);
+        count++;
     }
 
     return scans;
