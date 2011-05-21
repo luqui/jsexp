@@ -1,3 +1,5 @@
+EarleyParser = function() {
+
 // CodeCatalog Snippet http://www.codecatalog.net/279/1/
 var foreach = function(array, body) {
     for (var i = 0; i < array.length; ++i) {
@@ -179,8 +181,6 @@ var make_state_set = function(grammar, initial_states) {
     };
 
     var visit_state = function(state) {
-        console.log(state.toString());
-
         var symbol = state.dotprod.focus();
         if (typeof(symbol) === 'string') {       // nonterminal: predict
             foreach(grammar[symbol], function(prod) {
@@ -193,13 +193,12 @@ var make_state_set = function(grammar, initial_states) {
         }
         else if (typeof(symbol) === 'undefined') { // end: complete
             var value = new Sexp(state.dotprod.prod.lhs, state.completed);
-            console.log("   --> " + value);
             foreach(state.predictFrom, function(pstate) {
                 add_state(pstate.advance(value));
             });
         }
         else {
-            console.log("Unknown symbol type: " + symbol);
+            throw "Unknown symbol type: " + symbol;
         }
     };
 
@@ -225,39 +224,22 @@ var make_grammar = function(grammarlol) {
     return grammar;
 };
 
-var Simulator = function(grammar, startsym) {
-    this.stateset = make_state_set(grammar, [new State(new DotProduction(grammar[startsym][0], 0))]);
-
-    this.consume = function(str) {
-        var consumes = [];
-        foreach(this.stateset, function(state) {
-            var match = state.scan(str);
-            if (match) {
-                consumes.push(match);
-                console.log();
-                console.log("CONTEXT");
-                console.log("-------");
-                console.log(match.context().join('\n'));
-            }
-        });
+var parse_step = function(grammar, startsym) {
+    var stateset = make_state_set(grammar, grammar[startsym].map(function(s) {
+        return new State(new DotProduction(s, 0))
+    }));
     
-        if (consumes.length == 0) { throw "No input could be consumed" }
-
-        console.log("-----------");
-        this.stateset = make_state_set(grammar, consumes);
-    };
+    return stateset.map(function(state) {
+        return { 
+            symbol: state.dotprod.focus(), 
+            consume: function(inp) { 
+                return make_state_set(grammar, [state.advance(inp)]);
+            },
+            context: function() { return state.context() }
+        };
+    });
 };
 
-var testgrammar = make_grammar({
-    'E': [ [ 'eplus' ] ],
-    'eplus': [ [ 'etimes' ], [ 'eplus', /^\+/, 'etimes' ] ], 
-    'etimes': [ [ 'eatom' ], [ 'etimes', /^\*/, 'eatom' ] ],
-    'eatom': [ [ /^\d+/ ], [ /^\(/, 'eplus', /^\)/ ] ],
-});
+return parse_step;
 
-var sim = new Simulator(testgrammar, 'E');
-sim.consume('1');
-sim.consume('*');
-sim.consume('2');
-sim.consume('+');
-sim.consume('3');
+}();
