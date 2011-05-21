@@ -155,11 +155,13 @@ var State = object({
     }
 });
 
-var Sexp = function(head, args) {
-    this.head = head;
-    this.args = args;
-    this.toString = function() { return "(" + this.head + " " + this.args.join(' ') + ")" };
-};
+var Sexp = object({
+    init: function(head, args) {
+        this.head = head;
+        this.args = args;
+    },
+    toString: function() { return "(" + this.head + " " + this.args.join(' ') + ")" }
+});
 
 var make_state_set = function(grammar, initial_states) {
     var stateset = {};
