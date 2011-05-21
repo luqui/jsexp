@@ -171,12 +171,13 @@ var make_state_set = function(grammar, initial_states) {
     // Predict:  C ::= * B
     // Predict:  B ::= *  (already in set, so not visited)
     //
-    // However, B should be completed *again*, generating:
+    // However, B should be completed *again* since C ::= * B was added to 
+    // its predictFrom set, generating:
     //
     // Complete: C ::= B *
     // Complete: A ::= B C *
     //
-    // But it is not currently. 
+    // But this does not currently happen.
    
     var stateset = {};
     var scans = [];
