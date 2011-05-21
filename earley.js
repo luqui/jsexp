@@ -224,20 +224,24 @@ var make_grammar = function(grammarlol) {
     return grammar;
 };
 
-var parse_step = function(grammar, startsym) {
-    var stateset = make_state_set(grammar, grammar[startsym].map(function(s) {
-        return new State(new DotProduction(s, 0))
-    }));
+var parse_step = function(grammarlol, startsym) {
+    var grammar = make_grammar(grammarlol);
     
-    return stateset.map(function(state) {
-        return { 
-            symbol: state.dotprod.focus(), 
-            consume: function(inp) { 
-                return make_state_set(grammar, [state.advance(inp)]);
-            },
-            context: function() { return state.context() }
-        };
-    });
+    var step = function(stateset) {
+        return stateset.map(function(state) {
+            return { 
+                symbol: state.dotprod.focus(), 
+                consume: function(inp) { 
+                    return step(make_state_set(grammar, [state.advance(inp)]));
+                },
+                context: function() { return state.context() }
+            };
+        });
+    };
+
+    return step(make_state_set(grammar, grammar[startsym].map(function(s) {
+        return new State(new DotProduction(s, 0))
+    })));
 };
 
 return parse_step;

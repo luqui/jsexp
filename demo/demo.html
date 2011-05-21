@@ -1,0 +1,69 @@
+<html>
+<head> 
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="codemirror.js"></script>
+<link rel="stylesheet" href="codemirror.css" />
+<script src="../earley.js"></script>
+
+<style>
+span.altya { color: red }
+span.altyb { color: blue }
+span.altyerr { background: red; color: white }
+</style>
+
+<script>
+$(function() { 
+
+// CodeCatalog Snippet http://www.codecatalog.net/279/1/
+var foreach = function(array, body) {
+    for (var i = 0; i < array.length; ++i) {
+        body(array[i]);
+    }
+};
+// End CodeCatalog Snippet
+
+var grammar = {
+    'E': [ [ 'alty' ] ],
+    'alty': [ [], [ 'altya', 'altyb', 'alty' ] ],
+    'altya': [ [ /^a/ ] ],
+    'altyb': [ [ /^b/ ] ]
+};
+
+CodeMirror.defineMode("alty", function(conifg, parserConfig) {
+    var findHead = function(set, list) {
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].head in set) return list[i].head;
+        }
+        return null;
+    };
+
+    return {
+        startState: function() {
+            return { state: EarleyParser(grammar, 'E') }
+        },
+        copyState: function(state) {
+            return { state: state.state }
+        },
+        token: function(stream, state) {
+            for (var i = 0; i < state.state.length; ++i) {
+                var p = state.state[i];
+                var m = stream.match(p.symbol);
+                if (m) {
+                    state.state = p.consume(m[0]);
+                    return findHead({ 'altya':1, 'altyb':1 }, p.context());
+                }
+            }
+            stream.eatWhile(function() { return true });
+            return 'altyerr';
+        }
+    }
+});
+
+CodeMirror(document.body);
+
+});
+</script>  
+</head>
+<body>
+</body>
+</html>
