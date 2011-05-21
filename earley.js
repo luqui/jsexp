@@ -157,6 +157,27 @@ var Sexp = object({
 });
 
 var make_state_set = function(grammar, initial_states) {
+
+    // There is a subtle bug in here regarding productions that match
+    // the empty string.   Take this pathological grammar:
+    //
+    // A ::= B C
+    // B ::=
+    // C ::= B
+    //
+    // Start:    A ::= * B C
+    // Predict:  B ::= *
+    // Complete: A ::= B * C
+    // Predict:  C ::= * B
+    // Predict:  B ::= *  (already in set, so not visited)
+    //
+    // However, B should be completed *again*, generating:
+    //
+    // Complete: C ::= B *
+    // Complete: A ::= B C *
+    //
+    // But it is not currently. 
+   
     var stateset = {};
     var scans = [];
     var queue = [];
