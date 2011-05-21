@@ -6,9 +6,12 @@
 <script src="../earley.js"></script>
 
 <style>
-span.altya { color: red }
-span.altyb { color: blue }
-span.altyerr { background: red; color: white }
+span.elit    { color: red }
+span.plusop  { color: blue }
+span.timesop { color: blue }
+span.derefop { color: black; font-weight: bold }
+span.etimes  { background: #ddd }
+span.error   { background: red; color: white }
 </style>
 
 <script>
@@ -23,10 +26,16 @@ var foreach = function(array, body) {
 // End CodeCatalog Snippet
 
 var grammar = {
-    'E': [ [ 'alty' ] ],
-    'alty': [ [ 'altya', 'altyb', 'alty' ], [] ],
-    'altya': [ [ /^a/ ] ],
-    'altyb': [ [ /^b/ ] ]
+    'E':       [ [ 'eplus'  ] ],
+    'eplus':   [ [ 'etimes', 'eplus_rest' ] ],
+    'eplus_rest': [ [ 'plusop', 'eplus' ], [ ] ],
+    'etimes':  [ [ 'eatom', 'etimes_rest' ] ],
+    'etimes_rest': [ [ 'timesop', 'etimes' ], [ ] ],
+    'eatom':   [ [ 'elit'   ], [ /^\(/, 'eplus', /^\)/ ], [ 'derefop', 'eatom' ] ],
+    'elit':    [ [ /^\d+/   ], [ /^"([^\\"]*\\.)*[^\\"]*"/ ] ],
+    'plusop':  [ [ /^[+-]/  ] ],
+    'timesop': [ [ /^[*\/]/ ] ],
+    'derefop': [ [ /^\*/ ] ],
 };
 
 CodeMirror.defineMode("alty", function(conifg, parserConfig) {
@@ -51,11 +60,11 @@ CodeMirror.defineMode("alty", function(conifg, parserConfig) {
                 if (m) {
                     state.state = p.consume(m[0]);
                     var cx = p.context();
-                    return findHead({ 'altya': 1, 'altyb':1 }, cx);
+                    return findHead({ 'elit': 1, 'plusop':1, 'timesop':1, 'derefop':1 }, cx);
                 }
             }
             stream.eatWhile(function() { return true });
-            return 'altyerr';
+            return 'error';
         }
     }
 });
