@@ -30,7 +30,7 @@ var grammar = {
     'eplus':   [ [ 'etimes' ], [ 'eplus', 'plusop', 'etimes' ] ],
     'etimes':  [ [ 'eatom' ], [ 'etimes', 'timesop', 'eatom' ] ],
     'eatom':   [ [ 'elit'   ], [ /^\(/, 'eplus', /^\)/ ], [ 'derefop', 'eatom' ], ['elist'] ],
-    'elit':    [ [ /^\d+/   ], [ /^"([^\\"]*\\.)*[^\\"]*"/ ] ],
+    'elit':    [ [ /^\d+/   ], [ /^"/, /^[^\\"]*(\\.[^\\"]*)*/, /^"/ ] ],
     'elist':   [ [ /^\[/, 'elistexpr', /^\]/ ] ],
     'elistexpr': [ [ ], [ 'elistitem' ] ],
     'elistitem': [ [ 'elistitem', /^,/, 'eplus' ], [ 'eplus' ] ],
