@@ -74,6 +74,14 @@ var terminal_path = function(root, children) {
 };
 // End CodeCatalog Snippet
 
+var object = function(methods) {
+    var constr = methods['init'] || function() {};
+    for_kv(methods, function(k,v) {
+        constr.prototype[k] = v;
+    });
+    return constr;
+};
+
 
 // A grammar is a hash of LoLs.  Each key is a nonterminal, and each value is
 // a disjunction of juxtapositions of symbols.  A symbol can be:
@@ -81,49 +89,57 @@ var terminal_path = function(root, children) {
 // * A string, indicating a nonterminal
 // * A function, indicating a terminal (returns the value of the nonterminal parse, or 'null').
 
-var Production = function(lhs, rhss) {
-    this.lhs = lhs;
-    this.rhss = rhss;
-    this.id = unique_id();
-};
+var Production = object({
+    init: function(lhs, rhss) {
+        this.lhs = lhs;
+        this.rhss = rhss;
+        this.id = unique_id();
+    }
+});
 
-var DotProduction = function(prod, dot) {
-    this.prod = prod;
-    this.dot = dot;
+var DotProduction = object({
+    init: function(prod, dot) {
+        this.prod = prod;
+        this.dot = dot;
+    },
+    
+    toString: function() { return this.prod.id + ' ' + this.dot },
+    focus: function() { return this.prod.rhss[this.dot] },
+    advance: function() { return new DotProduction(this.prod, this.dot+1) },
+    pretty: function() { 
+        return this.prod.lhs + " ::= " + this.prod.rhss.slice(0,this.dot).join(' ') + " * " + this.prod.rhss.slice(this.dot).join(' ') 
+    }
+});
 
-    this.toString = function() { return prod.id + ' ' + dot };
-    this.focus = prod.rhss[dot];
-    this.advance = function() { return new DotProduction(prod, dot+1) };
-    this.pretty = function() { return prod.lhs + " ::= " + prod.rhss.slice(0,dot).join(' ') + " * " + prod.rhss.slice(dot).join(' ') };
-};
-
-var State = function(dotprod, predictFrom) {
-    this.dotprod = dotprod;
-    this.completed = [];
-    this.predictFrom = predictFrom || [];
-
-    this.toString = function() { 
+var State = object({
+    init: function(dotprod, predictFrom) {
+        this.dotprod = dotprod;
+        this.completed = [];
+        this.predictFrom = predictFrom || [];
+    },
+    
+    toString: function() {
         return this.dotprod.pretty();
-    };
+    },
 
-    this.scan = function(token) {
-        if (this.dotprod.focus(token)) {
+    scan: function(token) {
+        if (this.dotprod.focus()(token)) {
             return this.advance(token);
         }
         else {
             return null;
         }
-    };
+    },
 
-    this.advance = function(value) {
+    advance: function(value) {
         var newstate = new State(this.dotprod.advance());
         newstate.completed = this.completed.slice(0);
         newstate.completed[newstate.dotprod.dot-1] = value;
         newstate.predictFrom = this.predictFrom;
         return newstate;
-    };
+    },
 
-    this.nom = function(other_state) {
+    nom: function(other_state) {
         var self = this;  // ugh javascript
         foreach(other_state.predictFrom, function(s) { self.predictFrom.push(s) }); // XXX can there be overlap?
         var maxix = max(this.completed.length, other_state.completed.length);
@@ -131,13 +147,13 @@ var State = function(dotprod, predictFrom) {
             // TODO what if they are both defined and disagree?  (ambiguous grammar)
             this.completed[i] = i in this.completed ? this.completed[i] : other_state.completed[i];
         }
-    };
+    },
 
-    this.context = function() {
+    context: function() {
         return terminal_path(this, function(x) { return x.predictFrom })
                  .map(function(x) { return new Sexp(x.dotprod.prod.lhs, x.completed) });
-    };
-};
+    }
+});
 
 var Sexp = function(head, args) {
     this.head = head;
@@ -163,7 +179,7 @@ var make_state_set = function(grammar, initial_states) {
     var visit_state = function(state) {
         console.log(state.toString());
 
-        var symbol = state.dotprod.focus;
+        var symbol = state.dotprod.focus();
         if (typeof(symbol) === 'string') {       // nonterminal: predict
             foreach(grammar[symbol], function(prod) {
                 var dp = new DotProduction(prod, 0);
