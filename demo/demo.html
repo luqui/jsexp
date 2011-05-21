@@ -27,10 +27,8 @@ var foreach = function(array, body) {
 
 var grammar = {
     'E':       [ [ 'eplus'  ] ],
-    'eplus':   [ [ 'etimes', 'eplus_rest' ] ],
-    'eplus_rest': [ [ 'plusop', 'eplus' ], [ ] ],
-    'etimes':  [ [ 'eatom', 'etimes_rest' ] ],
-    'etimes_rest': [ [ 'timesop', 'etimes' ], [ ] ],
+    'eplus':   [ [ 'etimes' ], [ 'eplus', 'plusop', 'etimes' ] ],
+    'etimes':  [ [ 'eatom' ], [ 'etimes', 'timesop', 'eatom' ] ],
     'eatom':   [ [ 'elit'   ], [ /^\(/, 'eplus', /^\)/ ], [ 'derefop', 'eatom' ] ],
     'elit':    [ [ /^\d+/   ], [ /^"([^\\"]*\\.)*[^\\"]*"/ ] ],
     'plusop':  [ [ /^[+-]/  ] ],
