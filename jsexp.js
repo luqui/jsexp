@@ -102,7 +102,7 @@ var State = function(dotprod, predictFrom) {
         foreach(other_state.predictFrom, function(s) { self.predictFrom.push(s) }); // XXX can there be overlap?
         var maxix = max(this.completed.length, other_state.completed.length);
         for (var i = 0; i < maxix; i++) {
-            // TODO what if they are both defined and disagree?
+            // TODO what if they are both defined and disagree?  (ambiguous grammar)
             this.completed[i] = i in this.completed ? this.completed[i] : other_state.completed[i];
         }
     };
@@ -131,10 +131,6 @@ var make_state_set = function(grammar, initial_states) {
 
     var visit_state = function(state) {
         console.log(state.toString());
-
-        //if (state.dotprod.prod.lhs == 'E') {
-        //    console.log(state);
-        //}
 
         var symbol = state.dotprod.focus;
         if (typeof(symbol) === 'string') {       // nonterminal: predict
