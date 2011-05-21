@@ -157,11 +157,18 @@ var Sexp = object({
 });
 
 var make_state_set = function(grammar, initial_states) {
+    var stateset = {};
     var scans = [];
     var queue = [];
 
     var add_state = function(state) {
-        queue.push(state);
+        if (state.dotprod in stateset) {
+            var newstate = stateset[state.dotprod].nom(state);
+        }
+        else {
+            queue.push(state);
+            stateset[state.dotprod] = state;
+        }
     };
 
     var visit_state = function(state) {
@@ -188,11 +195,9 @@ var make_state_set = function(grammar, initial_states) {
 
     foreach(initial_states, add_state);
 
-    var count = 0;
     while (queue.length > 0) { 
         var e = queue.splice(0,1)[0];  // remove from beginning
         visit_state(e);
-        count++;
     }
 
     return scans;
