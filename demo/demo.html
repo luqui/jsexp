@@ -24,7 +24,7 @@ var foreach = function(array, body) {
 
 var grammar = {
     'E': [ [ 'alty' ] ],
-    'alty': [ [], [ 'altya', 'altyb', 'alty' ] ],
+    'alty': [ [ 'alty', 'altya', 'altyb' ], [] ],
     'altya': [ [ /^a/ ] ],
     'altyb': [ [ /^b/ ] ]
 };
@@ -50,7 +50,8 @@ CodeMirror.defineMode("alty", function(conifg, parserConfig) {
                 var m = stream.match(p.symbol);
                 if (m) {
                     state.state = p.consume(m[0]);
-                    return findHead({ 'altya':1, 'altyb':1 }, p.context());
+                    var cx = p.context();
+                    return findHead({ 'altya': 1, 'altyb':1 }, cx);
                 }
             }
             stream.eatWhile(function() { return true });
