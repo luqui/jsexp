@@ -76,6 +76,7 @@ var terminal_path = function(root, children) {
 };
 // End CodeCatalog Snippet
 
+// CodeCatalog Snippet http://www.codecatalog.net/331/1/
 var object = function(methods) {
     var constr = methods['init'] || function() {};
     for_kv(methods, function(k,v) {
@@ -83,6 +84,7 @@ var object = function(methods) {
     });
     return constr;
 };
+// End CodeCatalog Snippet
 
 
 // A grammar is a hash of LoLs.  Each key is a nonterminal, and each value is
@@ -146,14 +148,6 @@ var State = object({
         return terminal_path(this, function(x) { return x.predictFrom })
                  .map(function(x) { return new Sexp(x.dotprod.prod.lhs, x.completed) });
     }
-});
-
-var Sexp = object({
-    init: function(head, args) {
-        this.head = head;
-        this.args = args;
-    },
-    toString: function() { return "(" + this.head + " " + this.args.join(' ') + ")" }
 });
 
 var make_state_set = function(grammar, initial_states) {
