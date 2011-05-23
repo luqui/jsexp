@@ -34,6 +34,16 @@ var for_kv = function(object, body) {
 };
 // End CodeCatalog Snippet
 
+// CodeCatalog Snippet http://www.codecatalog.net/183/1/
+var keys = function(obj) {
+    var r = [];
+    for (var key in obj) {
+        r.push(key);
+    }
+    return r;
+};
+// End CodeCatalog Snippet
+
 var grammar = {
     'E':       [ [ 'stmts' ] ],
     'stmts':   [ [ 'stmt', /^;/, 'stmts' ], [ ] ],
@@ -74,7 +84,8 @@ CodeMirror.defineMode("alty", function(conifg, parserConfig) {
     }
 });
 
-var mirror = CodeMirror(document.body);
+var mirror = CodeMirror(document.body,
+    { onCursorActivity: function() { updateDebug() } });
 
 var extend = function(a,b) {
     for_kv(b, function(k,v) {
@@ -103,14 +114,15 @@ var remove = function(key, s) {
     return r;
 };
 
-$('#debugbtn').click(function() {
+var updateDebug = function() {
     var tok = mirror.getTokenAt(mirror.getCursor());
     var cx = tok.state.state[0].context();
+    var tree = build_zipper(cx);
     AttributeGrammar.install_zipper(cx, 'defined_vars', {
         'ROOT': function(node, children, parent) { return set() },
         '*': function(node, children, parent) { return parent.defined_vars() },
         'scope': function(node, children, parent) {
-            if (children[1].args[1]) {
+            if (children[1] && children[1].args[1]) {
                 var u = unions([parent.defined_vars(), set(children[1].args[1])]);
                 return u;
             }
@@ -119,11 +131,6 @@ $('#debugbtn').click(function() {
             }
         }
     });
-
-    console.log(cx[0].defined_vars());
-
-    var tree = build_zipper(cx);
-    console.log(tree);
 
     AttributeGrammar.install_root(tree, 'free_vars', {
         '*': function(node, children, parent) { 
@@ -136,19 +143,20 @@ $('#debugbtn').click(function() {
             return fvs;
         },
         'scope': function(node, children, parent) {
-            if (children[1].args[1]) {
+            if (children[1] && children[1].args[1] && children[2]) {
                 return remove(children[1].args[1], children[2].free_vars());
             }
             else {
-                return children[2].free_vars();
+                return children[2] ? children[2].free_vars() : set();
             }
         },
         'ref': function(node, children, parent) {
             return set(children[0]);
         }
     });
-    console.log(tree.free_vars());
-});
+
+    $('#debug').text("Bound Variables: " + keys(cx[0].defined_vars()) + "\nFree Variables: " + keys(tree.free_vars()) + "\n");
+};
 
 });
 </script>  
