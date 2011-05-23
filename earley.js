@@ -250,14 +250,14 @@ var parse_step = function(grammarlol, startsym) {
     
     var step = function(position, stateset) {
         return stateset.map(function(state) {
-            return { 
-                symbol: state.dotprod.focus(), 
-                consume: function(inp) { 
-                    return step(position+1, make_state_set(position+1, grammar, [state.advance(inp)]));
-                },
-                context: function() { return state.context() }
-            };
-        });
+                   return { 
+                       symbol: state.dotprod.focus(), 
+                       consume: function(inp) { 
+                           return step(position+1, make_state_set(position+1, grammar, [state.advance(inp)]));
+                       },
+                       context: function() { return state.context() }
+                   }
+               });
     };
 
     return step(0, make_state_set(0, grammar, grammar[startsym].map(function(s) {

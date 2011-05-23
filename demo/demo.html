@@ -24,6 +24,16 @@ var foreach = function(array, body) {
 };
 // End CodeCatalog Snippet
 
+// CodeCatalog Snippet http://www.codecatalog.net/323/2/
+var for_kv = function(object, body) {
+    for (var k in object) {
+        if (object.hasOwnProperty(k)) {
+            body(k, object[k]);
+        }
+    }
+};
+// End CodeCatalog Snippet
+
 var grammar = {
     'E':       [ [ 'stmts' ] ],
     'stmts':   [ [ 'stmt', /^;/, 'stmts' ], [ ] ],
@@ -66,9 +76,78 @@ CodeMirror.defineMode("alty", function(conifg, parserConfig) {
 
 var mirror = CodeMirror(document.body);
 
+var extend = function(a,b) {
+    for_kv(b, function(k,v) {
+        a[k] = v;
+    });
+    return a;
+};
+
+var unions = function(xs) {
+    var r = {};
+    foreach(xs, function(x) { extend(r,x) });
+    return r;
+};
+
+var set = function() {
+    var r = {};
+    for (var i = 0; i < arguments.length; i++) {
+        r[arguments[i]] = true;
+    }
+    return r;
+};
+
+var remove = function(key, s) {
+    var r = extend({}, s);
+    delete r[key];
+    return r;
+};
+
 $('#debugbtn').click(function() {
     var tok = mirror.getTokenAt(mirror.getCursor());
-    $('#debug').text(tok.state.state.map(function(s) { return s.context().join("\n") }).join("\n--------\n"));
+    var cx = tok.state.state[0].context();
+    AttributeGrammar.install_zipper(cx, 'defined_vars', {
+        'ROOT': function(node, children, parent) { return set() },
+        '*': function(node, children, parent) { return parent.defined_vars() },
+        'scope': function(node, children, parent) {
+            if (children[1].args[1]) {
+                var u = unions([parent.defined_vars(), set(children[1].args[1])]);
+                return u;
+            }
+            else {  
+                return parent.defined_vars();
+            }
+        }
+    });
+
+    console.log(cx[0].defined_vars());
+
+    var tree = build_zipper(cx);
+    console.log(tree);
+
+    AttributeGrammar.install_root(tree, 'free_vars', {
+        '*': function(node, children, parent) { 
+            var fvs = {};
+            foreach(children, function(child) {
+                if (typeof(child) === 'object' && 'free_vars' in child) {
+                    extend(fvs, child.free_vars());
+                }
+            });
+            return fvs;
+        },
+        'scope': function(node, children, parent) {
+            if (children[1].args[1]) {
+                return remove(children[1].args[1], children[2].free_vars());
+            }
+            else {
+                return children[2].free_vars();
+            }
+        },
+        'ref': function(node, children, parent) {
+            return set(children[0]);
+        }
+    });
+    console.log(tree.free_vars());
 });
 
 });

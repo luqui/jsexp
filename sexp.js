@@ -32,3 +32,11 @@ var Sexp = object({
 return Sexp;
 
 }();
+
+var build_zipper = function(zipper) {
+    var r = zipper[0];
+    for (var i = 1; i < zipper.length; i++) {
+        r = new Sexp(zipper[i].head, zipper[i].args.concat([r]));
+    }
+    return r;
+};
