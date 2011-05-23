@@ -25,7 +25,8 @@ var Sexp = object({
         this.head = head;
         this.args = args;
     },
-    toString: function() { return "(" + this.head + " " + this.args.join(' ') + ")" }
+    toString: function() { return "(" + this.head + " " + this.args.join(' ') + ")" },
+    isSexp: true
 });
 
 return Sexp;
