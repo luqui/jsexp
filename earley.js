@@ -116,21 +116,25 @@ var DotProduction = object({
 });
 
 var State = object({
-    init: function(dotprod, predictFrom) {
+    init: function(position, dotprod, predictFrom) {
+        this.position = position;
         this.dotprod = dotprod;
         this.completed = [];
         this.predictFrom = predictFrom || [];
     },
-    
+
     toString: function() {
-        return this.dotprod.pretty();
+        return this.position + ' ' + this.dotprod;
+    },
+    
+    pretty: function() {
+        return "(" + this.position + ") " + this.dotprod.pretty();
     },
 
     advance: function(value) {
-        var newstate = new State(this.dotprod.advance());
+        var newstate = new State(this.position, this.dotprod.advance(), this.predictFrom);
         newstate.completed = this.completed.slice(0);
         newstate.completed[newstate.dotprod.dot-1] = value;
-        newstate.predictFrom = this.predictFrom;
         return newstate;
     },
 
@@ -139,7 +143,10 @@ var State = object({
         foreach(other_state.predictFrom, function(s) { self.predictFrom.push(s) }); // XXX can there be overlap?
         var maxix = max(this.completed.length, other_state.completed.length);
         for (var i = 0; i < maxix; i++) {
-            // TODO what if they are both defined and disagree?  (ambiguous grammar)
+            if (i in this.completed && i in other_state.completed) {
+                // TODO if they are both defined and disagree?  (ambiguous grammar)
+                console.log("Completion conflict: " + this.pretty() + " +++ " + other_state.pretty());
+            }
             this.completed[i] = i in this.completed ? this.completed[i] : other_state.completed[i];
         }
     },
@@ -150,7 +157,7 @@ var State = object({
     }
 });
 
-var make_state_set = function(grammar, initial_states) {
+var make_state_set = function(position, grammar, initial_states) {
 
     // There is a subtle bug in here regarding productions that match
     // the empty string.   Take this pathological grammar:
@@ -177,13 +184,15 @@ var make_state_set = function(grammar, initial_states) {
     var scans = [];
     var queue = [];
 
-    var add_state = function(state) {
+    var completions = {};
+
+    var add_state = function(state, hack) {
         if (state.dotprod in stateset) {
-            var newstate = stateset[state.dotprod].nom(state);
+            stateset[state].nom(state);
         }
         else {
             queue.push(state);
-            stateset[state.dotprod] = state;
+            stateset[state] = state;
         }
     };
 
@@ -192,14 +201,19 @@ var make_state_set = function(grammar, initial_states) {
         if (typeof(symbol) === 'string') {       // nonterminal: predict
             foreach(grammar[symbol], function(prod) {
                 var dp = new DotProduction(prod, 0);
-                add_state(new State(dp, [state]));
+                add_state(new State(position, dp, [state]));
             });
+            if (symbol in completions) {
+                //add_state(state.advance(value));
+            }
         }
         else if (typeof(symbol) === 'function') { // terminal: scan
             scans.push(state);
         }
         else if (typeof(symbol) === 'undefined') { // end: complete
-            var value = new Sexp(state.dotprod.prod.lhs, state.completed);
+            var nonterm = state.dotprod.prod.lhs;
+            var value = new Sexp(nonterm, state.completed);
+            completions[nonterm] = value;
             foreach(state.predictFrom, function(pstate) {
                 add_state(pstate.advance(value));
             });
@@ -234,20 +248,20 @@ var make_grammar = function(grammarlol) {
 var parse_step = function(grammarlol, startsym) {
     var grammar = make_grammar(grammarlol);
     
-    var step = function(stateset) {
+    var step = function(position, stateset) {
         return stateset.map(function(state) {
             return { 
                 symbol: state.dotprod.focus(), 
                 consume: function(inp) { 
-                    return step(make_state_set(grammar, [state.advance(inp)]));
+                    return step(position+1, make_state_set(position+1, grammar, [state.advance(inp)]));
                 },
                 context: function() { return state.context() }
             };
         });
     };
 
-    return step(make_state_set(grammar, grammar[startsym].map(function(s) {
-        return new State(new DotProduction(s, 0))
+    return step(0, make_state_set(0, grammar, grammar[startsym].map(function(s) {
+        return new State(0, new DotProduction(s, 0))
     })));
 };
 

@@ -5,13 +5,11 @@
 <link rel="stylesheet" href="codemirror.css" />
 <script src="../sexp.js"></script>
 <script src="../earley.js"></script>
+<script src="../attribute_grammar.js"></script>
 
 <style>
-span.elit    { color: red }
-span.plusop  { color: blue }
-span.timesop { color: blue }
-span.derefop { color: black; font-weight: bold }
-span.etimes  { background: #ddd }
+span.ref     { color: green }
+span.param   { color: blue }
 span.error   { background: red; color: white }
 </style>
 
@@ -27,17 +25,12 @@ var foreach = function(array, body) {
 // End CodeCatalog Snippet
 
 var grammar = {
-    'E':       [ [ 'eplus'  ] ],
-    'eplus':   [ [ 'etimes' ], [ 'eplus', 'plusop', 'etimes' ] ],
-    'etimes':  [ [ 'eatom' ], [ 'etimes', 'timesop', 'eatom' ] ],
-    'eatom':   [ [ 'elit'   ], [ /^\(/, 'eplus', /^\)/ ], [ 'derefop', 'eatom' ], ['elist'] ],
-    'elit':    [ [ /^\d+/   ], [ /^"/, /^[^\\"]*(\\.[^\\"]*)*/, /^"/ ] ],
-    'elist':   [ [ /^\[/, 'elistexpr', /^\]/ ] ],
-    'elistexpr': [ [ ], [ 'elistitem' ] ],
-    'elistitem': [ [ 'elistitem', /^,/, 'eplus' ], [ 'eplus' ] ],
-    'plusop':  [ [ /^[+-]/  ] ],
-    'timesop': [ [ /^[*\/]/ ] ],
-    'derefop': [ [ /^\*/ ] ],
+    'E':       [ [ 'stmts' ] ],
+    'stmts':   [ [ 'stmt', /^;/, 'stmts' ], [ ] ],
+    'stmt':    [ [ 'scope' ], [ 'ref' ] ],
+    'scope':   [ [ /^\{/, 'param', 'stmts', /^\}/ ] ],
+    'param':   [ [ ], [ /^\|/, /^\w+/, /^\|/ ] ],
+    'ref':     [ [ /^\w+/ ] ],
 };
 
 CodeMirror.defineMode("alty", function(conifg, parserConfig) {
@@ -62,7 +55,7 @@ CodeMirror.defineMode("alty", function(conifg, parserConfig) {
                 if (m) {
                     state.state = p.consume(m[0]);
                     var cx = p.context();
-                    return findHead({ 'elit': 1, 'plusop':1, 'timesop':1, 'derefop':1 }, cx);
+                    return findHead({ 'ref': 1, 'param':1 }, cx);
                 }
             }
             stream.eatWhile(function() { return true });
@@ -71,11 +64,18 @@ CodeMirror.defineMode("alty", function(conifg, parserConfig) {
     }
 });
 
-CodeMirror(document.body);
+var mirror = CodeMirror(document.body);
+
+$('#debugbtn').click(function() {
+    var tok = mirror.getTokenAt(mirror.getCursor());
+    $('#debug').text(tok.state.state.map(function(s) { return s.context().join("\n") }).join("\n--------\n"));
+});
 
 });
 </script>  
 </head>
 <body>
+<pre id="debug" name="debug"></pre>
+<button id="debugbtn" name="debugbtn">Debug</button>
 </body>
 </html>
