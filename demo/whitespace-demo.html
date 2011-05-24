@@ -1,0 +1,48 @@
+<html>
+<head> 
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="codemirror.js"></script>
+<link rel="stylesheet" href="codemirror.css" />
+
+<style>
+span.word { background: pink }
+span.space { background: lightblue }
+span.error { background: red; color: white }
+</style>
+
+<script>
+$(function() { 
+
+CodeMirror.defineMode("alty", function(conifg, parserConfig) {
+    return {
+        token: function(stream, state) {
+            if (stream.match(/^\w+/)) {
+                return 'word';
+            }
+            else if (stream.match(/^\s+/)) {
+                return 'space';
+            }
+            else {
+                stream.eatWhile(/^[^\w\s]+/);
+                return 'error';
+            }
+        }
+    }
+});
+
+mirror = CodeMirror(document.body, { 
+    onChange: function(_, change) { 
+        var tok = mirror.getTokenAt(change.to);
+        console.log(tok);
+        if (tok.className === 'space' && tok.string !== ' ') {
+            mirror.replaceRange(' ', { line: change.to.line, ch: tok.start }, { line: change.to.line, ch: tok.end });
+        }
+    }
+});
+
+});
+</script>  
+</head>
+<body>
+</body>
+</html>
