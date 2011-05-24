@@ -33,7 +33,6 @@ CodeMirror.defineMode("alty", function(conifg, parserConfig) {
 mirror = CodeMirror(document.body, { 
     onChange: function(_, change) { 
         var tok = mirror.getTokenAt(change.to);
-        console.log(tok);
         if (tok.className === 'space' && tok.string !== ' ') {
             mirror.replaceRange(' ', { line: change.to.line, ch: tok.start }, { line: change.to.line, ch: tok.end });
         }
