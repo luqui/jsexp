@@ -72,7 +72,8 @@ var magicTokenMode = function(options) {
             var focusmtok = null;
             var focusline = null;
             var enterkey = false;
-            if (change.from.line == change.to.line && change.from.ch == change.to.ch && change.text[0] === "" && change.from.line > 0) {  // enter key
+            console.log(change);
+            if (change.from.line == change.to.line && change.from.ch == 0 && change.to.ch == 0 && change.from.line > 0) {  // fresh line
                 enterkey = true;
                 focusline = change.from.line-1;
                 focusmtok = mirror.getTokenAt({ line: focusline });
@@ -96,8 +97,9 @@ var magicTokenMode = function(options) {
 
 var alty = magicTokenMode({
     token: function(stream, state) {
+        var sol = stream.sol();
         if (stream.match(/^\s+/)) {
-            return { 'class': 'space', text: ' ' };
+            return !sol ? { 'class': 'space', text: ' ' } : { 'class': 'space' };
         }
         if (stream.match(/^\w+/)) {
             return { 'class': 'word', text: 'word' };
