@@ -72,9 +72,9 @@ var magicTokenMode = function(options) {
             var focusmtok = null;
             var focusline = null;
             var enterkey = false;
-            if (change.from.line == change.to.line && change.from.ch == 0 && change.to.ch == 0 && change.from.line > 0) {  // fresh line
+            if (change.text.length == 2 && change.text[0] === '' && change.text[1] === '') {  // enter key
                 enterkey = true;
-                focusline = change.from.line-1;
+                focusline = change.from.line;
                 focusmtok = mirror.getTokenAt({ line: focusline });
             }
             else if (change.text[0].length > 0 && change.from.ch == mtok.start && change.from.ch > 0) {  // start of new token
