@@ -5,67 +5,85 @@
 <link rel="stylesheet" href="codemirror.css" />
 
 <style>
-span.line { background: lightgray }
-span.indent { background: lightgreen }
-span.outdent { background: pink }
-span.samedent { background: yellow }
-span.error { background: red }
+span.space { background: lightgray }
+span.word { background: pink }
+span.indent { background: lightblue }
+span.other { }
 </style>
 
 <script>
 $(function() { 
 
-CodeMirror.defineMode("alty", function(conifg, parserConfig) {
+var magicTokenMode = function(options) {
+    var startState = options.startState || function() { return null };
+    var copyState = function(s) { return CodeMirror.copyState(options, s) };
+    
+
+    var changeDisabled = false;
     return {
         startState: function() {
-            return { indent: [0], sol: true }
+            return { token: null, state: (options.startState || function() { return null })() }
         },
-
+        copyState: function(state) {
+            return { token: state.token, state: copyState(state.state) }
+        },
         token: function(stream, state) {
-            if (stream.sol() && state.sol) {
-                state.sol = false;
-                var m = stream.match(/^\s+/);
-                var indent = m ? m[0].length : 0;
-                var istate = state.indent[state.indent.length-1];
-                if (indent > istate) {
-                    state.indent.push(indent);
-                    return 'indent';
-                }
-                else if (indent < istate) {
-                    while (indent < state.indent[state.indent.length-1]) {
-                        state.indent.pop();
-                    }
-                    if (indent == state.indent[state.indent.length-1]) {
-                        return 'outdent';
-                    }
-                    else {
-                        return 'error';
-                    }
-                }
-                else {
-                    return 'samedent';
-                }
+            var tok = options.token(stream, state.state);
+            if (tok === null || tok === undefined) {
+                return state.token = null;
             }
-            else {
-                stream.eatWhile(/^.*/);
-                state.sol = true;
-                return 'line';
+            if (typeof(tok) === 'string') {
+                state.token = { 'class': tok };
+                return tok;
+            }
+            if (typeof(tok) === 'object') {
+                state.token = tok;
+                return tok['class'];
+            }
+            throw "Bad return value from token: " + tok;
+        },
+        onChange: function(mirror, change) {
+            if (changeDisabled) return;
+            
+            var mtok = mirror.getTokenAt(change.to);
+            if (!mtok) return;
+            var tok = mtok.state.token;
+            if (!tok) return;
+            if (change.text[0] === "" && change.from.line == change.to.line && change.from.ch == change.to.ch) { 
+                console.log("Newline", change)
+            }
+            else if (typeof(tok.text) === 'string' && tok.text != mtok.string) {
+                var oldChangeDisabled = changeDisabled;
+                changeDisabled = true;
+                mirror.replaceRange(tok.text, { line: change.from.line, ch: mtok.start }, { line: change.from.line, ch: mtok.end });
+                changeDisabled = oldChangeDisabled;
             }
         },
-        
-        indent: function(state, textAfter) {
-            return state.indent[state.indent.length-1];
-        },
+    }
+};
+
+var alty = magicTokenMode({
+    token: function(stream, state) {
+        if (stream.match(/^\s+/)) {
+            return { 'class': 'space', text: ' ' };
+        }
+        if (stream.match(/^\w+/)) {
+            return { 'class': 'word', text: 'word' };
+        }
+        if (stream.match(/^:/)) {
+            return { 'class': 'indent', text: ':\n    ' };
+        }
+        stream.eatWhile(/^.*/);
+        return 'other';
     }
 });
 
-var showLineCh = function(linech) {
-    return linech.line + ":" + linech.ch;
-};
+CodeMirror.defineMode("alty", function(conifg, parserConfig) {
+    return alty;
+});
 
-mirror = CodeMirror(document.body, { 
-    onChange: function(_, change) { 
-    }
+mirror = CodeMirror(document.body, {
+    onChange: alty.onChange
 });
 
 });
