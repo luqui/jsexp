@@ -5,9 +5,11 @@
 <link rel="stylesheet" href="codemirror.css" />
 
 <style>
-span.word { background: pink }
-span.space { background: lightblue }
-span.error { background: red; color: white }
+span.line { background: lightgray }
+span.indent { background: lightgreen }
+span.outdent { background: pink }
+span.samedent { background: yellow }
+span.error { background: red }
 </style>
 
 <script>
@@ -15,27 +17,54 @@ $(function() {
 
 CodeMirror.defineMode("alty", function(conifg, parserConfig) {
     return {
+        startState: function() {
+            return { indent: [0], sol: true }
+        },
+
         token: function(stream, state) {
-            if (stream.match(/^\w+/)) {
-                return 'word';
-            }
-            else if (stream.match(/^\s+/)) {
-                return 'space';
+            if (stream.sol() && state.sol) {
+                state.sol = false;
+                var m = stream.match(/^\s+/);
+                var indent = m ? m[0].length : 0;
+                var istate = state.indent[state.indent.length-1];
+                if (indent > istate) {
+                    state.indent.push(indent);
+                    return 'indent';
+                }
+                else if (indent < istate) {
+                    while (indent < state.indent[state.indent.length-1]) {
+                        state.indent.pop();
+                    }
+                    if (indent == state.indent[state.indent.length-1]) {
+                        return 'outdent';
+                    }
+                    else {
+                        return 'error';
+                    }
+                }
+                else {
+                    return 'samedent';
+                }
             }
             else {
-                stream.eatWhile(/^[^\w\s]+/);
-                return 'error';
+                stream.eatWhile(/^.*/);
+                state.sol = true;
+                return 'line';
             }
-        }
+        },
+        
+        indent: function(state, textAfter) {
+            return state.indent[state.indent.length-1];
+        },
     }
 });
 
+var showLineCh = function(linech) {
+    return linech.line + ":" + linech.ch;
+};
+
 mirror = CodeMirror(document.body, { 
     onChange: function(_, change) { 
-        var tok = mirror.getTokenAt(change.to);
-        if (tok.className === 'space' && tok.string !== ' ') {
-            mirror.replaceRange(' ', { line: change.to.line, ch: tok.start }, { line: change.to.line, ch: tok.end });
-        }
     }
 });
 
