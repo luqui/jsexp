@@ -14,20 +14,37 @@ span.other { }
 <script>
 $(function() { 
 
+// CodeCatalog Snippet http://www.codecatalog.net/341/1/
+var split_lines = function(str) {
+    return str.split(/\n/);
+};
+// End CodeCatalog Snippet
+
 var magicTokenMode = function(options) {
     var startState = options.startState || function() { return null };
     var copyState = function(s) { return CodeMirror.copyState(options, s) };
     
-
-    var changeDisabled = false;
     return {
         startState: function() {
-            return { token: null, state: (options.startState || function() { return null })() }
+            return { linepart: 0, token: null, state: (options.startState || function() { return null })() }
         },
         copyState: function(state) {
-            return { token: state.token, state: copyState(state.state) }
+            return { linepart: state.linepart, token: state.token, state: copyState(state.state) }
         },
         token: function(stream, state) {
+            if (state.linepart != 0 && stream.sol()) {
+                var toklines = split_lines(state.token.text);
+                if (stream.match(toklines[state.linepart])) {
+                    if (state.linepart < toklines.length && stream.eol()) {
+                        state.linepart += 1;
+                    }
+                    else { 
+                        state.linepart = 0;
+                    }
+                }
+                return state.token['class'];
+            }
+
             var tok = options.token(stream, state.state);
             if (tok === null || tok === undefined) {
                 return state.token = null;
@@ -38,25 +55,40 @@ var magicTokenMode = function(options) {
             }
             if (typeof(tok) === 'object') {
                 state.token = tok;
+                if (typeof(tok.text) === 'string') {
+                    var toklines = split_lines(tok.text);
+                    if (stream.match(toklines[0])) {
+                        if (stream.eol() && toklines.length > 1) { state.linepart = 1; }
+                    }
+                }
                 return tok['class'];
             }
             throw "Bad return value from token: " + tok;
         },
         onChange: function(mirror, change) {
-            if (changeDisabled) return;
-            
-            var mtok = mirror.getTokenAt(change.to);
+            var mtok = mirror.getTokenAt({ line: change.from.line, ch: change.from.ch + change.text[0].length });
             if (!mtok) return;
-            var tok = mtok.state.token;
-            if (!tok) return;
-            if (change.text[0] === "" && change.from.line == change.to.line && change.from.ch == change.to.ch) { 
-                console.log("Newline", change)
+            
+            var focusmtok = null;
+            var focusline = null;
+            var enterkey = false;
+            if (change.from.line == change.to.line && change.from.ch == change.to.ch && change.text[0] === "" && change.from.line > 0) {  // enter key
+                enterkey = true;
+                focusline = change.from.line-1;
+                focusmtok = mirror.getTokenAt({ line: focusline });
             }
-            else if (typeof(tok.text) === 'string' && tok.text != mtok.string) {
-                var oldChangeDisabled = changeDisabled;
-                changeDisabled = true;
-                mirror.replaceRange(tok.text, { line: change.from.line, ch: mtok.start }, { line: change.from.line, ch: mtok.end });
-                changeDisabled = oldChangeDisabled;
+            else if (change.text[0].length > 0 && change.from.ch == mtok.start && change.from.ch > 0) {  // start of new token
+                focusline = change.from.line;
+                focusmtok = mirror.getTokenAt({ line: focusline, ch: change.from.ch });
+            }
+
+            if (focusmtok) {
+                var tok = focusmtok.state.token;
+                if (tok && typeof(tok.text) === 'string' && focusmtok.string !== tok.text) {
+                    var to = { line: focusline, ch: focusmtok.end };
+                    if (enterkey && /\n/(tok.text)) { to = { line: focusline+1, ch: 0 } }
+                    mirror.replaceRange(tok.text, { line: focusline, ch: focusmtok.start }, to);
+                }
             }
         },
     }
