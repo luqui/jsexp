@@ -187,7 +187,7 @@ var make_state_set = function(position, grammar, initial_states) {
     var completions = {};
 
     var add_state = function(state, hack) {
-        if (state.dotprod in stateset) {
+        if (state in stateset) {
             stateset[state].nom(state);
         }
         else {
@@ -204,7 +204,7 @@ var make_state_set = function(position, grammar, initial_states) {
                 add_state(new State(position, dp, [state]));
             });
             if (symbol in completions) {
-                //add_state(state.advance(value));
+                add_state(state.advance(value));
             }
         }
         else if (typeof(symbol) === 'function') { // terminal: scan
@@ -225,8 +225,10 @@ var make_state_set = function(position, grammar, initial_states) {
 
     foreach(initial_states, add_state);
 
+    //console.log("-------------");
     while (queue.length > 0) { 
         var e = queue.splice(0,1)[0];  // remove from beginning
+        //console.log(e.pretty());
         visit_state(e);
     }
 

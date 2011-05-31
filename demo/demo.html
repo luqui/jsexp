@@ -6,11 +6,11 @@
 <script src="../sexp.js"></script>
 <script src="../earley.js"></script>
 <script src="../attribute_grammar.js"></script>
+<script src="../grammars/javascript.js"></script>
 
 <style>
-span.ref     { color: green }
-span.param   { color: blue }
-span.error   { background: red; color: white }
+span.error       { background: red; color: white }
+span.initializer { font-weight: bold }
 </style>
 
 <script>
@@ -44,16 +44,21 @@ var keys = function(obj) {
 };
 // End CodeCatalog Snippet
 
-var grammar = {
-    'E':       [ [ 'stmts' ] ],
-    'stmts':   [ [ 'stmt', /^;/, 'stmts' ], [ ] ],
-    'stmt':    [ [ 'scope' ], [ 'ref' ] ],
-    'scope':   [ [ /^\{/, 'param', 'stmts', /^\}/ ] ],
-    'param':   [ [ ], [ /^\|/, /^\w+/, /^\|/ ] ],
-    'ref':     [ [ /^\w+/ ] ],
+// CodeCatalog Snippet http://www.codecatalog.net/353/1/
+var unique = function(l) {
+    var r = [];
+    var seen = {};
+    for (var i = 0; i < l.length; i++) {
+        if (!(l[i] in seen)) {
+            r.push(l[i]);
+            seen[l[i]] = true;
+        }
+    }
+    return r; 
 };
+// End CodeCatalog Snippet
 
-CodeMirror.defineMode("alty", function(conifg, parserConfig) {
+CodeMirror.defineMode("javascript", function(conifg, parserConfig) {
     var findHead = function(set, list) {
         for (var i = 0; i < list.length; i++) {
             if (list[i].head in set) return list[i].head;
@@ -63,7 +68,7 @@ CodeMirror.defineMode("alty", function(conifg, parserConfig) {
 
     return {
         startState: function() {
-            return { state: EarleyParser(grammar, 'E') }
+            return { state: EarleyParser(javascript_grammar, 'program') }
         },
         copyState: function(state) {
             return { state: state.state }
@@ -75,7 +80,7 @@ CodeMirror.defineMode("alty", function(conifg, parserConfig) {
                 if (m) {
                     state.state = p.consume(m[0]);
                     var cx = p.context();
-                    return findHead({ 'ref': 1, 'param':1 }, cx);
+                    return unique(cx.map(function(x) { return x.head })).join(' ');
                 }
             }
             stream.eatWhile(function() { return true });
@@ -84,79 +89,7 @@ CodeMirror.defineMode("alty", function(conifg, parserConfig) {
     }
 });
 
-var mirror = CodeMirror(document.body,
-    { onCursorActivity: function() { updateDebug() } });
-
-var extend = function(a,b) {
-    for_kv(b, function(k,v) {
-        a[k] = v;
-    });
-    return a;
-};
-
-var unions = function(xs) {
-    var r = {};
-    foreach(xs, function(x) { extend(r,x) });
-    return r;
-};
-
-var set = function() {
-    var r = {};
-    for (var i = 0; i < arguments.length; i++) {
-        r[arguments[i]] = true;
-    }
-    return r;
-};
-
-var remove = function(key, s) {
-    var r = extend({}, s);
-    delete r[key];
-    return r;
-};
-
-var updateDebug = function() {
-    var tok = mirror.getTokenAt(mirror.getCursor());
-    var cx = tok.state.state[0].context();
-    var tree = build_zipper(cx);
-    AttributeGrammar.install_zipper(cx, 'defined_vars', {
-        'ROOT': function(node, children, parent) { return set() },
-        '*': function(node, children, parent) { return parent.defined_vars() },
-        'scope': function(node, children, parent) {
-            if (children[1] && children[1].args[1]) {
-                var u = unions([parent.defined_vars(), set(children[1].args[1])]);
-                return u;
-            }
-            else {  
-                return parent.defined_vars();
-            }
-        }
-    });
-
-    AttributeGrammar.install_root(tree, 'free_vars', {
-        '*': function(node, children, parent) { 
-            var fvs = {};
-            foreach(children, function(child) {
-                if (typeof(child) === 'object' && 'free_vars' in child) {
-                    extend(fvs, child.free_vars());
-                }
-            });
-            return fvs;
-        },
-        'scope': function(node, children, parent) {
-            if (children[1] && children[1].args[1] && children[2]) {
-                return remove(children[1].args[1], children[2].free_vars());
-            }
-            else {
-                return children[2] ? children[2].free_vars() : set();
-            }
-        },
-        'ref': function(node, children, parent) {
-            return set(children[0]);
-        }
-    });
-
-    $('#debug').text("Bound Variables: " + keys(cx[0].defined_vars()) + "\nFree Variables: " + keys(tree.free_vars()) + "\n");
-};
+var mirror = CodeMirror(document.body);
 
 });
 </script>  

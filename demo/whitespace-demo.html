@@ -97,6 +97,9 @@ var magicTokenMode = function(options) {
 var alty = magicTokenMode({
     token: function(stream, state) {
         var sol = stream.sol();
+        if (stream.eol()) {
+            return { 'class': 'space', 'text': '\n    ' };
+        }
         if (stream.match(/^\s+/)) {
             return !sol ? { 'class': 'space', text: ' ' } : { 'class': 'space' };
         }
