@@ -2,9 +2,9 @@
 var floating_point_regexp = /^[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?/;
 // End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/357/1/
+// CodeCatalog Snippet http://www.codecatalog.net/357/2/
 var escape_for_regexp = function(text) {
-    return text.replace(/[^\w]/g, function(x) { '\\' + x });
+    return text.replace(/[][\\^$*+?{}\.()|]/g, function(x) { '\\' + x });
 };
 // End CodeCatalog Snippet
 
@@ -15,12 +15,30 @@ var Token = {
             text: text + ' '
         }
     },
+	no_space_after_rx: function(rx) {
+		return {
+			pattern: new RegExp('^(' + rx.source + ')\\s*'),
+			text: function(m) { return m[1] }
+		}
+	},
+	no_space_before_rx: function(rx) {
+		return {
+			pattern: new RegExp('^\\s*(' + rx.source + ')'),
+			text: function(m) { return m[1] }
+		}
+	},
     space_padded_rx: function(rx) {
         return {
             pattern: new RegExp('^\\s*(' + rx.source + ')\\s*'),
             text: function(m) { return ' ' + m[1] + ' ' }
         }
     },
+	newline_after: function(text) {
+		return {
+			pattern: new RegExp('^' + escape_for_regexp(text) + '\\s*'),
+			text: text + '\n'
+		}
+	},
 };
 
 
@@ -31,7 +49,7 @@ var javascript_grammar = {
              [ 'stmt', 'more_stmts' ] ],
 
     more_stmts: [ [ ], 
-                [ /^;/, 'stmts' ] ],
+                [ Token.newline_after(';'), 'stmts' ] ],
 
     stmt: [ [ 'var_decl' ],
             [ 'expr' ],
@@ -43,10 +61,10 @@ var javascript_grammar = {
             [ 'if_stmt' ],
             [ 'function_stmt' ] ],
 
-    return_stmt: [ [ 'return_keyword', /^\s+/, 'expr' ] ],
-    void_stmt: [ [ 'void_keyword', /^\s+/, 'expr' ] ],
+    return_stmt: [ [ 'return_keyword', 'expr' ] ],
+    void_stmt: [ [ 'void_keyword', 'expr' ] ],
 
-    function_stmt: [ [ 'function_keyword', /^\s+/, 'identifier', /^\(/, 'arg_list', /^\)/, 'block' ] ],
+    function_stmt: [ [ 'function_keyword', 'identifier', /^\(/, 'arg_list', /^\)/, 'block' ] ],
 
     // TODO what is the syntactic class of the first clause?
     for_stmt: [ [ 'for_keyword', /^\(/, 'stmt', /^;/, 'expr', /^;/, 'expr', /^\)/, 'stmt' ] ],
@@ -60,9 +78,9 @@ var javascript_grammar = {
     var_decl: [ [ 'var_keyword', 'initializer_list' ] ],
 
     initializer_list: [ [ 'initializer' ],
-                        [ 'initializer_list', /^,/, 'initializer' ] ],
+                        [ 'initializer_list', Token.space_after(','), 'initializer' ] ],
 
-    initializer: [ [ 'identifier', /^=/, 'expr' ] ],
+    initializer: [ [ 'identifier', Token.space_padded_rx(/=/), 'expr' ] ],
 
     identifier: [ [ /^[a-zA-Z_$][\w$]*/ ] ],
 
@@ -82,8 +100,8 @@ var javascript_grammar = {
     unary_expr: [ [ 'atomic_expr' ],
                   [ 'prefix_operator', 'unary_expr' ] ],
 
-    prefix_operator: [ [ /^(\+\+|--|\+|-|!)/ ] ],
-    postfix_operator: [ [ /^(\+\+|--)/ ] ],
+    prefix_operator: [ [ Token.no_space_after_rx(/^(\+\+|--|\+|-|!)/) ] ],
+    postfix_operator: [ [ Token.no_space_before_rx(/^(\+\+|--)/) ] ],
 
     atomic_expr: [ [ 'literal' ],
                    [ 'function_expr' ],
@@ -105,14 +123,14 @@ var javascript_grammar = {
     
     function_expr: [ [ 'function_keyword', /^\(/, 'arg_list', /^\)/, 'block' ] ],
     arg_list: [ [ ], [ 'identifier', 'more_arg_list' ] ],
-    more_arg_list: [ [ ], [ /^,/, 'identifier', 'more_arg_list' ] ],
+    more_arg_list: [ [ ], [ Token.space_after(','), 'identifier', 'more_arg_list' ] ],
 
     block: [ [ /^\{/, 'stmts', /^\}/ ] ],
 
     array_expr: [ [ /^\[/, 'expr_list', /^\]/ ] ],
     
     expr_list: [ [ ], [ 'expr', 'more_expr_list' ] ],
-    more_expr_list: [ [ ], [ /^,/, 'expr', 'more_expr_list' ] ],
+    more_expr_list: [ [ ], [ Token.space_after(','), 'expr', 'more_expr_list' ] ],
 
     object_expr: [ [ /^\{/, 'property_list', /^\}/ ] ],
 
