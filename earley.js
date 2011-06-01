@@ -191,9 +191,6 @@ var make_state_set = function(position, grammar, initial_states) {
                 }
             });
         }
-        else if (typeof(symbol) === 'function') { // terminal: scan
-            scans.push(state);
-        }
         else if (typeof(symbol) === 'undefined') { // end: complete
             var nonterm = state.dotprod.prod.lhs;
             var value = new Sexp(nonterm, state.completed);
@@ -202,8 +199,8 @@ var make_state_set = function(position, grammar, initial_states) {
                 add_state(pstate.advance(value));
             });
         }
-        else {
-            throw "Unknown symbol type: " + symbol;
+        else { // terminal: scan
+            scans.push(state);
         }
     };
 

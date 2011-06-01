@@ -2,6 +2,22 @@
 var floating_point_regexp = /^[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?/;
 // End CodeCatalog Snippet
 
+// CodeCatalog Snippet http://www.codecatalog.net/357/1/
+var escape_for_regexp = function(text) {
+    return text.replace(/[^\w]/g, function(x) { '\\' + x });
+};
+// End CodeCatalog Snippet
+
+var Token = {
+    space_after: function(text) {
+        return {
+            pattern: new RegExp('^' + escape_for_regexp(text) + '\s*'),
+            text: text + ' '
+        }
+    }
+};
+
+
 var javascript_grammar = {
     program: [ [ 'stmts' ] ],
 
