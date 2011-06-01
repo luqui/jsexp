@@ -12,6 +12,7 @@
 span.error        { background: red; color: white }
 span.literal      { color: red; }
 span.property_key { color: red; }
+span.variable     { color: blue; }
 </style>
 
 <script>
@@ -82,7 +83,7 @@ CodeMirror.defineMode("javascript", function(conifg, parserConfig) {
             for (var i = 0; i < state.state.length; ++i) {
                 var p = state.state[i];
                 var m = stream.match(p.symbol, false);
-                if (m && m.length > best.string.length) {
+                if (m && m[0].length > best.string.length) {
                     best.string = m[0];
                     best.state = p;
                 }

@@ -11,7 +11,29 @@ var javascript_grammar = {
     more_stmts: [ [ ], 
                 [ /^;/, 'stmts' ] ],
 
-    stmt: [ [ 'var_decl' ] ],
+    stmt: [ [ 'var_decl' ],
+            [ 'expr' ],
+            [ 'block' ],
+            [ 'return_stmt' ],
+            [ 'void_stmt' ],
+            [ 'for_stmt' ],
+            [ 'foreach_stmt' ],
+            [ 'if_stmt' ],
+            [ 'function_stmt' ] ],
+
+    return_stmt: [ [ 'return_keyword', /^\s+/, 'expr' ] ],
+    void_stmt: [ [ 'void_keyword', /^\s+/, 'expr' ] ],
+
+    function_stmt: [ [ 'function_keyword', /^\s+/, 'identifier', /^\(/, 'arg_list', /^\)/, 'block' ] ],
+
+    // TODO what is the syntactic class of the first clause?
+    for_stmt: [ [ 'for_keyword', /^\(/, 'stmt', /^;/, 'expr', /^;/, 'expr', /^\)/, 'stmt' ] ],
+    foreach_stmt: [ [ 'for_keyword', /^\(/, 'foreach_var_decl', /^\s+/, 'in_keyword', 'expr', /^\)/, 'stmt' ] ],
+    if_stmt: [ [ 'if_keyword', /^\(/, 'expr', /^\)/, 'stmt', 'else_clause' ] ],
+    else_clause: [ [ ], [ 'else_keyword', 'stmt' ] ],
+
+    foreach_var_decl: [ [ 'var_keyword', 'identifier' ],
+                        [ 'identifier' ] ],
     
     var_decl: [ [ 'var_keyword', /^\s+/, 'initializer_list' ] ],
 
@@ -33,12 +55,12 @@ var javascript_grammar = {
     operator_expr: [ [ 'unary_expr' ],
                      [ 'unary_expr', 'operator', 'operator_expr' ] ],
 
-    operator: [ [ /^(\+|-|\*|\/|%|==|!=|>|>=|<|<=|===|!==)/ ] ],
+    operator: [ [ /^(\+|-|\*|\/|%|==|!=|>|>=|<|<=|===|!==|\|\||&&|in)/ ] ],
 
     unary_expr: [ [ 'atomic_expr' ],
                   [ 'prefix_operator', 'unary_expr' ] ],
 
-    prefix_operator: [ [ /^(\+\+|--|\+|-)/ ] ],
+    prefix_operator: [ [ /^(\+\+|--|\+|-|!)/ ] ],
     postfix_operator: [ [ /^(\+\+|--)/ ] ],
 
     atomic_expr: [ [ 'literal' ],
@@ -47,6 +69,7 @@ var javascript_grammar = {
                    [ 'object_expr' ],
                    [ 'index_expr' ],
                    [ 'funcall_expr' ],
+                   [ 'variable' ],
                    [ /^\(/, 'expr', /^\)/ ] ],
 
     literal: [ [ floating_point_regexp ],
@@ -62,14 +85,14 @@ var javascript_grammar = {
     arg_list: [ [ ], [ 'identifier', 'more_arg_list' ] ],
     more_arg_list: [ [ ], [ /^,/, 'identifier', 'more_arg_list' ] ],
 
-    block: [ [ /^\{/, 'stmts', /^\}/ ] ],
+    block: [ [ 'open_brace', 'stmts', /^\}/ ] ],
 
     array_expr: [ [ /^\[/, 'expr_list', /^\]/ ] ],
     
     expr_list: [ [ ], [ 'expr', 'more_expr_list' ] ],
     more_expr_list: [ [ ], [ /^,/, 'expr', 'more_expr_list' ] ],
 
-    object_expr: [ [ /^\{/, 'property_list', /^\}/ ] ],
+    object_expr: [ [ 'open_brace', 'property_list', /^\}/ ] ],
 
     property_list: [ [ ], [ 'property_kv', 'more_property_list' ] ],
     more_property_list: [ [ ], [ /^,/, 'property_kv', 'more_property_list' ] ],
@@ -84,6 +107,16 @@ var javascript_grammar = {
 
     funcall_expr: [ [ 'atomic_expr', /^\(/, 'expr_list', /^\)/ ] ],
 
+    variable: [ [ 'identifier' ] ],
+
     var_keyword: [ [ /^var/ ] ],
     function_keyword: [ [ /^function/ ] ],
+    return_keyword: [ [ /^return/ ] ],
+    void_keyword: [ [ /^void/ ] ],
+    for_keyword: [ [ /^for/ ] ],
+    in_keyword: [ [ /^in/ ] ],
+    if_keyword: [ [ /^if/ ] ],
+    else_keyword: [ [ /^else/ ] ],
+
+    open_brace: [ [ /^{/ ] ],
 };

@@ -239,6 +239,7 @@ var parse_step = function(grammarlol, startsym) {
                    return { 
                        symbol: state.dotprod.focus(), 
                        consume: function(inp) { 
+                           //console.log("-------- " + inp + " --------");
                            return step(position+1, make_state_set(position+1, grammar, [state.advance(inp)]));
                        },
                        context: function() { return state.context() }
