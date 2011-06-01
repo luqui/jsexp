@@ -235,16 +235,20 @@ var parse_step = function(grammarlol, startsym) {
     var grammar = make_grammar(grammarlol);
     
     var step = function(position, stateset) {
-        return stateset.map(function(state) {
-                   return { 
-                       symbol: state.dotprod.focus(), 
-                       consume: function(inp) { 
-                           //console.log("-------- " + inp + " --------");
-                           return step(position+1, make_state_set(position+1, grammar, [state.advance(inp)]));
-                       },
-                       context: function() { return state.context() }
-                   }
-               });
+        return {
+            tokens: 
+                stateset.map(function(state) {
+                    return { 
+                        symbol: state.dotprod.focus(), 
+                        consume: function(inp) { return state.advance(inp) },
+                        context: function() { return state.context() }
+                    }
+                }),
+            advance:
+                function(states) {
+                    return step(position+1, make_state_set(position+1, grammar, states));
+                }
+        }
     };
 
     return step(0, make_state_set(0, grammar, grammar[startsym].map(function(s) {
