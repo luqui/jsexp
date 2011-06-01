@@ -60,6 +60,144 @@ var unique = function(l) {
 };
 // End CodeCatalog Snippet
 
+// CodeCatalog Snippet http://www.codecatalog.net/341/1/
+var split_lines = function(str) {
+    return str.split(/\n/);
+};
+// End CodeCatalog Snippet
+
+var magicTokenMode = function(options) {
+    var startState = options.startState || function() { return null };
+    var copyState = function(s) { return CodeMirror.copyState(options, s) };
+    
+    return {
+        startState: function() {
+            return { linepart: 0, token: null, state: (options.startState || function() { return null })() }
+        },
+        copyState: function(state) {
+            return { linepart: state.linepart, token: state.token, state: copyState(state.state) }
+        },
+        token: function(stream, state) {
+            if (state.linepart != 0 && stream.sol()) {
+                var toklines = split_lines(state.token.text);
+                if (stream.match(toklines[state.linepart])) {
+                    if (state.linepart < toklines.length && stream.eol()) {
+                        state.linepart += 1;
+                    }
+                    else { 
+                        state.linepart = 0;
+                    }
+                }
+                return state.token['class'];
+            }
+
+            var tok = options.token(stream, state.state);
+            if (tok === null || tok === undefined) {
+                return state.token = null;
+            }
+            if (typeof(tok) === 'string') {
+                state.token = { 'class': tok };
+                return tok;
+            }
+            if (typeof(tok) === 'object') {
+                state.token = tok;
+                if (typeof(tok.text) === 'string') {
+                    var toklines = split_lines(tok.text);
+                    if (stream.match(toklines[0])) {
+                        if (stream.eol() && toklines.length > 1) { state.linepart = 1; }
+                    }
+                }
+                return tok['class'];
+            }
+            throw "Bad return value from token: " + tok;
+        },
+        onChange: function(mirror, change) {
+            var mtok = mirror.getTokenAt({ line: change.from.line, ch: change.from.ch + change.text[0].length });
+            if (!mtok) return;
+            
+            var focusmtok = null;
+            var focusline = null;
+            var enterkey = false;
+            if (change.text.length == 2 && change.text[0] === '' && change.text[1] === '') {  // enter key
+                enterkey = true;
+                focusline = change.from.line;
+                focusmtok = mirror.getTokenAt({ line: focusline });
+            }
+            else if (change.text[0].length > 0 && change.from.ch == mtok.start && change.from.ch > 0) {  // start of new token
+                focusline = change.from.line;
+                focusmtok = mirror.getTokenAt({ line: focusline, ch: change.from.ch });
+            }
+
+            if (focusmtok) {
+                var tok = focusmtok.state.token;
+                if (tok && typeof(tok.text) === 'string' && focusmtok.string !== tok.text) {
+                    var to = { line: focusline, ch: focusmtok.end };
+                    if (enterkey && /\n/(tok.text)) { to = { line: focusline+1, ch: 0 } }
+                    mirror.replaceRange(tok.text, { line: focusline, ch: focusmtok.start }, to);
+                }
+            }
+        },
+    }
+};
+
+var jsmode = magicTokenMode({
+    startState: function() {
+        return { state: EarleyParser(javascript_grammar, 'program') }
+    },
+    copyState: function(state) {
+        return { state: state.state }
+    },
+    token: function(stream, state) {
+        // munch longest token
+        // if multiple, consume all
+        // (going to bite)
+        var best = { string: '', states: [] };
+        for (var i = 0; i < state.state.tokens.length; ++i) {
+            var p = state.state.tokens[i];
+            var pattern = typeof(p.symbol) == 'object' ? p.symbol.pattern : p.symbol;
+            var m = stream.match(pattern, false);
+            if (m) {
+                if (typeof(p.symbol) == 'object' && 'text' in p.symbol) {
+                    // XXX I do not own this type, it is wrong of me to add properties
+                    if (typeof(p.symbol.text) == 'function') {
+                        p.text = p.symbol.text(m);
+                    }
+                    else {
+                        p.text = p.symbol.text;
+                    }
+                }
+                if (m[0].length == best.string.length) {
+                    best.states.push(p);
+                }
+                else if (m[0].length > best.string.length) {
+                    best.string = m[0];
+                    best.states = [p];
+                }
+            }
+        }
+
+        if (best.states.length > 0) {
+            var beststate = best.states[0]; // gotta pick sumfin
+            stream.match(best.string);
+            var cx = beststate.context();
+            var classes = unique(cx.map(function(x) { return x.head })).join(' ');
+            state.state = state.state.advance(best.states.map(function(s) { 
+                return s.consume(best.string);
+            }));
+
+            var ret = { 'class': classes };
+            if ('text' in beststate) {
+                ret.text = beststate.text;
+            }
+            return ret;
+        }
+        else {
+            stream.eatWhile(function() { return true });
+            return 'error';
+        }
+    }
+});
+
 CodeMirror.defineMode("javascript", function(conifg, parserConfig) {
     var findHead = function(set, list) {
         for (var i = 0; i < list.length; i++) {
@@ -68,50 +206,13 @@ CodeMirror.defineMode("javascript", function(conifg, parserConfig) {
         return null;
     };
 
-    return {
-        startState: function() {
-            return { state: EarleyParser(javascript_grammar, 'program') }
-        },
-        copyState: function(state) {
-            return { state: state.state }
-        },
-        token: function(stream, state) {
-            // munch longest token
-            // if multiple, consume all
-            // (going to bite)
-            var best = { string: '', states: [] };
-            for (var i = 0; i < state.state.tokens.length; ++i) {
-                var p = state.state.tokens[i];
-                var m = stream.match(p.symbol, false);
-                if (m) {
-                    if (m[0].length == best.string.length) {
-                        best.states.push(p);
-                    }
-                    else if (m[0].length > best.string.length) {
-                        best.string = m[0];
-                        best.states = [p];
-                    }
-                }
-            }
-
-            if (best.states.length > 0) {
-                stream.match(best.string);
-                var cx = best.states[0].context();  // gotta pick sumfin (could cat all)
-                var classes = unique(cx.map(function(x) { return x.head })).join(' ');
-                state.state = state.state.advance(best.states.map(function(s) { 
-                    return s.consume(best.string);
-                }));
-                return classes;
-            }
-            else {
-                stream.eatWhile(function() { return true });
-                return 'error';
-            }
-        }
-    }
+    return jsmode;
 });
 
-var mirror = CodeMirror(document.body);
+var mirror = CodeMirror(document.body, {
+    onChange: jsmode.onChange,
+    enterMode: 'flat'
+});
 
 });
 </script>  

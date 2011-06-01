@@ -11,10 +11,16 @@ var escape_for_regexp = function(text) {
 var Token = {
     space_after: function(text) {
         return {
-            pattern: new RegExp('^' + escape_for_regexp(text) + '\s*'),
+            pattern: new RegExp('^' + escape_for_regexp(text) + '\\s*'),
             text: text + ' '
         }
-    }
+    },
+    space_padded_rx: function(rx) {
+        return {
+            pattern: new RegExp('^\\s*(' + rx.source + ')\\s*'),
+            text: function(m) { return ' ' + m[1] + ' ' }
+        }
+    },
 };
 
 
@@ -51,7 +57,7 @@ var javascript_grammar = {
     foreach_var_decl: [ [ 'var_keyword', 'identifier' ],
                         [ 'identifier' ] ],
     
-    var_decl: [ [ 'var_keyword', /^\s+/, 'initializer_list' ] ],
+    var_decl: [ [ 'var_keyword', 'initializer_list' ] ],
 
     initializer_list: [ [ 'initializer' ],
                         [ 'initializer_list', /^,/, 'initializer' ] ],
@@ -65,13 +71,13 @@ var javascript_grammar = {
     assignment_expr: [ [ 'operator_expr' ],
                        [ 'operator_expr', 'assignment_operator', 'assignment_expr' ] ],
 
-    assignment_operator: [ [ /^[+*\/%-]?=/ ] ],
+    assignment_operator: [ [ Token.space_padded_rx(/[+*\/%-]?=/) ] ],
 
     // not modeling all precedence levels
     operator_expr: [ [ 'unary_expr' ],
                      [ 'unary_expr', 'operator', 'operator_expr' ] ],
 
-    operator: [ [ /^(\+|-|\*|\/|%|==|!=|>|>=|<|<=|===|!==|\|\||&&|in)/ ] ],
+    operator: [ [ Token.space_padded_rx(/(\+|-|\*|\/|%|==|!=|>|>=|<|<=|===|!==|\|\||&&|in)/) ] ],
 
     unary_expr: [ [ 'atomic_expr' ],
                   [ 'prefix_operator', 'unary_expr' ] ],
@@ -101,14 +107,14 @@ var javascript_grammar = {
     arg_list: [ [ ], [ 'identifier', 'more_arg_list' ] ],
     more_arg_list: [ [ ], [ /^,/, 'identifier', 'more_arg_list' ] ],
 
-    block: [ [ 'open_brace', 'stmts', /^\}/ ] ],
+    block: [ [ /^\{/, 'stmts', /^\}/ ] ],
 
     array_expr: [ [ /^\[/, 'expr_list', /^\]/ ] ],
     
     expr_list: [ [ ], [ 'expr', 'more_expr_list' ] ],
     more_expr_list: [ [ ], [ /^,/, 'expr', 'more_expr_list' ] ],
 
-    object_expr: [ [ 'open_brace', 'property_list', /^\}/ ] ],
+    object_expr: [ [ /^\{/, 'property_list', /^\}/ ] ],
 
     property_list: [ [ ], [ 'property_kv', 'more_property_list' ] ],
     more_property_list: [ [ ], [ /^,/, 'property_kv', 'more_property_list' ] ],
@@ -125,14 +131,12 @@ var javascript_grammar = {
 
     variable: [ [ 'identifier' ] ],
 
-    var_keyword: [ [ /^var/ ] ],
-    function_keyword: [ [ /^function/ ] ],
-    return_keyword: [ [ /^return/ ] ],
-    void_keyword: [ [ /^void/ ] ],
-    for_keyword: [ [ /^for/ ] ],
-    in_keyword: [ [ /^in/ ] ],
-    if_keyword: [ [ /^if/ ] ],
-    else_keyword: [ [ /^else/ ] ],
-
-    open_brace: [ [ /^{/ ] ],
+    var_keyword: [ [ Token.space_after('var') ] ],
+    function_keyword: [ [ Token.space_after('function') ] ],
+    return_keyword: [ [ Token.space_after('return') ] ],
+    void_keyword: [ [ Token.space_after('void') ] ],
+    for_keyword: [ [ Token.space_after('for') ] ],
+    in_keyword: [ [ Token.space_after('in') ] ],
+    if_keyword: [ [ Token.space_after('if') ] ],
+    else_keyword: [ [ Token.space_after('else') ] ],
 };
