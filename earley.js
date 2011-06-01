@@ -50,7 +50,7 @@ var max = function() {
 };
 // End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/328/1/
+
 var terminal_path = function(root, children) {
     var traverse = function(x) {
         var r = [];
@@ -60,10 +60,13 @@ var terminal_path = function(root, children) {
         }
         return r.reverse();
     };
-    
+
     var queue = [{node: root, pred: null}];
+    var seen = {};
     while (queue.length > 0) {
         var e = queue.splice(0,1)[0];
+        if (e.node in seen) continue;
+        seen[e.node] = true;
         var ch = children(e.node);
         if (ch.length == 0) {
             return traverse(e);
@@ -74,7 +77,6 @@ var terminal_path = function(root, children) {
     }
     throw "How ever did we get here?";
 };
-// End CodeCatalog Snippet
 
 // CodeCatalog Snippet http://www.codecatalog.net/331/1/
 var object = function(methods) {

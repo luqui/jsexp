@@ -45,6 +45,8 @@ var javascript_grammar = {
                    [ 'function_expr' ],
                    [ 'array_expr' ],
                    [ 'object_expr' ],
+                   [ 'index_expr' ],
+                   [ 'funcall_expr' ],
                    [ /^\(/, 'expr', /^\)/ ] ],
 
     literal: [ [ floating_point_regexp ],
@@ -77,7 +79,10 @@ var javascript_grammar = {
     property_key: [ [ 'identifier' ],
                     [ 'literal' ] ],   // not exactly right.  eg. regexes can't be keys
 
-    
+    index_expr: [ [ 'atomic_expr', /^\[/, 'expr', /^\]/ ],
+                  [ 'atomic_expr', /^\./, 'identifier' ] ],
+
+    funcall_expr: [ [ 'atomic_expr', /^\(/, 'expr_list', /^\)/ ] ],
 
     var_keyword: [ [ /^var/ ] ],
     function_keyword: [ [ /^function/ ] ],
