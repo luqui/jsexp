@@ -9,8 +9,9 @@
 <script src="../grammars/javascript.js"></script>
 
 <style>
-span.error       { background: red; color: white }
-span.initializer { font-weight: bold }
+span.error        { background: red; color: white }
+span.literal      { color: red; }
+span.property_key { color: red; }
 </style>
 
 <script>
@@ -74,17 +75,29 @@ CodeMirror.defineMode("javascript", function(conifg, parserConfig) {
             return { state: state.state }
         },
         token: function(stream, state) {
+            // munch longest token
+            // if multiple, pick "first" (arbitrary)
+            // (going to bite)
+            var best = { string: '', state: undefined };
             for (var i = 0; i < state.state.length; ++i) {
                 var p = state.state[i];
-                var m = stream.match(p.symbol);
-                if (m) {
-                    state.state = p.consume(m[0]);
-                    var cx = p.context();
-                    return unique(cx.map(function(x) { return x.head })).join(' ');
+                var m = stream.match(p.symbol, false);
+                if (m && m.length > best.string.length) {
+                    best.string = m[0];
+                    best.state = p;
                 }
             }
-            stream.eatWhile(function() { return true });
-            return 'error';
+
+            if (best.state) {
+                stream.match(best.state.symbol);
+                state.state = best.state.consume(best.string);
+                var cx = best.state.context();
+                return unique(cx.map(function(x) { return x.head })).join(' ');
+            }
+            else {
+                stream.eatWhile(function() { return true });
+                return 'error';
+            }
         }
     }
 });

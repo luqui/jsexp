@@ -120,7 +120,7 @@ var State = object({
         this.position = position;
         this.dotprod = dotprod;
         this.completed = [];
-        this.predictFrom = predictFrom || [];
+        this.predictFrom = (predictFrom || []).slice(0);
     },
 
     toString: function() {
@@ -143,9 +143,10 @@ var State = object({
         foreach(other_state.predictFrom, function(s) { self.predictFrom.push(s) }); // XXX can there be overlap?
         var maxix = max(this.completed.length, other_state.completed.length);
         for (var i = 0; i < maxix; i++) {
-            if (i in this.completed && i in other_state.completed) {
+            if (i in this.completed && i in other_state.completed 
+                    && this.completed[i] !== other_state.completed[i]) {
                 // TODO if they are both defined and disagree?  (ambiguous grammar)
-                console.log("Completion conflict: " + this.pretty() + " +++ " + other_state.pretty());
+                console.log("Completion conflict: " + this.pretty() + " at " + i + ": " + this.completed[i] + " vs. " + other_state.completed[i]);
             }
             this.completed[i] = i in this.completed ? this.completed[i] : other_state.completed[i];
         }
@@ -158,28 +159,6 @@ var State = object({
 });
 
 var make_state_set = function(position, grammar, initial_states) {
-
-    // There is a subtle bug in here regarding productions that match
-    // the empty string.   Take this pathological grammar:
-    //
-    // A ::= B C
-    // B ::=
-    // C ::= B
-    //
-    // Start:    A ::= * B C
-    // Predict:  B ::= *
-    // Complete: A ::= B * C
-    // Predict:  C ::= * B
-    // Predict:  B ::= *  (already in set, so not visited)
-    //
-    // However, B should be completed *again* since C ::= * B was added to 
-    // its predictFrom set, generating:
-    //
-    // Complete: C ::= B *
-    // Complete: A ::= B C *
-    //
-    // But this does not currently happen.
-   
     var stateset = {};
     var scans = [];
     var queue = [];
@@ -199,13 +178,16 @@ var make_state_set = function(position, grammar, initial_states) {
     var visit_state = function(state) {
         var symbol = state.dotprod.focus();
         if (typeof(symbol) === 'string') {       // nonterminal: predict
+            if (!(symbol in grammar)) { throw "Undefined nonterminal: " + symbol; }
+            
             foreach(grammar[symbol], function(prod) {
                 var dp = new DotProduction(prod, 0);
-                add_state(new State(position, dp, [state]));
+                var newstate = new State(position, dp, [state]);
+                add_state(newstate);
+                if (newstate in completions) {
+                    add_state(state.advance(completions[newstate]));
+                }
             });
-            if (symbol in completions) {
-                add_state(state.advance(value));
-            }
         }
         else if (typeof(symbol) === 'function') { // terminal: scan
             scans.push(state);
@@ -213,7 +195,7 @@ var make_state_set = function(position, grammar, initial_states) {
         else if (typeof(symbol) === 'undefined') { // end: complete
             var nonterm = state.dotprod.prod.lhs;
             var value = new Sexp(nonterm, state.completed);
-            completions[nonterm] = value;
+            completions[state] = value;
             foreach(state.predictFrom, function(pstate) {
                 add_state(pstate.advance(value));
             });
@@ -225,7 +207,7 @@ var make_state_set = function(position, grammar, initial_states) {
 
     foreach(initial_states, add_state);
 
-    //console.log("-------------");
+    //console.log("-----------");
     while (queue.length > 0) { 
         var e = queue.splice(0,1)[0];  // remove from beginning
         //console.log(e.pretty());
