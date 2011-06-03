@@ -154,8 +154,8 @@ var jsmode = magicTokenMode({
         var best = { string: '', states: [] };
         for (var i = 0; i < state.state.tokens.length; ++i) {
             var p = state.state.tokens[i];
-            var pattern = typeof(p.symbol) == 'object' ? p.symbol.pattern : p.symbol;
-            var m = stream.match(pattern, false);
+            var pattern = p.symbol.pattern;
+            var m = stream.match(new RegExp('^' + pattern), false);
             if (m) {
                 if (typeof(p.symbol) == 'object' && 'text' in p.symbol) {
                     // XXX I do not own this type, it is wrong of me to add properties
