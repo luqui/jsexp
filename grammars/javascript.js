@@ -1,6 +1,4 @@
-// CodeCatalog Snippet http://www.codecatalog.net/355/1/
-var floating_point_regexp = /^[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?/;
-// End CodeCatalog Snippet
+var floating_point_regexp = /[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?/;
 
 // CodeCatalog Snippet http://www.codecatalog.net/357/3/
 var escape_for_regexp = function(text) {
@@ -8,46 +6,94 @@ var escape_for_regexp = function(text) {
 };
 // End CodeCatalog Snippet
 
-var Token = {
-    space_after: function(text) {
-        return {
-            pattern: escape_for_regexp(text) + '\\s*',
-            text: text + ' '
+// CodeCatalog Snippet http://www.codecatalog.net/361/1/
+var reduce_args_left = function(f) {
+    return function() {
+        var r = arguments[0];
+        for (var i = 1; i < arguments.length; i++) {
+            r = f(r, arguments[i]);
         }
-    },
+        return r;
+    };
+};
+// End CodeCatalog Snippet
+
+
+// CodeCatalog Snippet http://www.codecatalog.net/359/1/
+var trace = function() {
+    console.log.apply(console, arguments);
+    return arguments[arguments.length-1];
+};
+// End CodeCatalog Snippet
+
+var Token = {
     rx: function(rx) {
         return {
-            pattern: rx.source
+            // pattern is a *string* containing the unanchored source of a regular expression
+            pattern: rx.source,
+            // groups is the number of capture groups in this regular expression
+            groups: 0,
+            // text is a function taking the resulting regexp match object and a group
+            // offset
+            text: function(m,offs) { return m[offs] },
         }
     },
+    
     string: function(text) {
+        return this.rx(new RegExp(escape_for_regexp(text)));
+    },
+    
+    cat: reduce_args_left(function(t,u) {
         return {
-            pattern: escape_for_regexp(text)
+            pattern: '(' + t.pattern + ')' + '(' + u.pattern + ')',
+            groups: t.groups + u.groups + 2,
+            text: function(m,offs) { return t.text(m, offs+1) + u.text(m, offs + 1 +t.groups + 1) }
+        }
+    }),
+
+    // parses a token possibly surrounded by whitespace.  the whitespace will be removed
+    tok: function(t) {
+        return {
+            pattern: '\\s*(' + t.pattern + ')\\s*',
+            groups: 1,
+            text: function(m,offs) { return t.text(m, offs+1) }
         }
     },
+
+    space: {
+        pattern: '\\s*',
+        groups: 0,
+        text: function(m,offs) { return ' ' }
+    },
+    nospace: {
+        pattern: '\\s*',
+        groups: 0,
+        text: function(m,offs) { return '' }
+    },
+    newline: {
+        pattern: '\\s*',
+        groups: 0,
+        text: function(m,offs) { return '\n' }
+    },
+
+    space_after: function(t) {
+        return this.cat(this.string(t), this.space);
+    },
+    
 	no_space_after_rx: function(rx) {
-		return {
-			pattern: '(' + rx.source + ')\\s*',
-			text: function(m) { return m[1] }
-		}
+        return this.cat(this.rx(rx), this.nospace);
 	},
+    
 	no_space_before_rx: function(rx) {
-		return {
-			pattern: '\\s*(' + rx.source + ')',
-			text: function(m) { return m[1] }
-		}
+        return this.cat(this.nospace, this.rx(rx));
 	},
+    
     space_padded_rx: function(rx) {
-        return {
-            pattern: '\\s*(' + rx.source + ')\\s*',
-            text: function(m) { return ' ' + m[1] + ' ' }
-        }
+        return this.cat(this.space, this.rx(rx), this.space);
     },
+
 	newline_after: function(text) {
-		return {
-			pattern: escape_for_regexp(text) + '\\s*',
-			text: text + '\n'
-		}
+        return this.cat(this.string(text), this.newline);
 	},
 };
 
@@ -104,13 +150,13 @@ var javascript_grammar = {
     operator_expr: [ [ 'unary_expr' ],
                      [ 'unary_expr', 'operator', 'operator_expr' ] ],
 
-    operator: [ [ Token.space_padded_rx(/(\+|-|\*|\/|%|==|!=|>|>=|<|<=|===|!==|\|\||&&|in)/) ] ],
+    operator: [ [ Token.space_padded_rx(/(?:\+|-|\*|\/|%|==|!=|>|>=|<|<=|===|!==|\|\||&&|in)/) ] ],
 
     unary_expr: [ [ 'atomic_expr' ],
                   [ 'prefix_operator', 'unary_expr' ] ],
 
-    prefix_operator: [ [ Token.no_space_after_rx(/(\+\+|--|\+|-|!)/) ] ],
-    postfix_operator: [ [ Token.no_space_before_rx(/(\+\+|--)/) ] ],
+    prefix_operator: [ [ Token.no_space_after_rx(/(?:\+\+|--|\+|-|!)/) ] ],
+    postfix_operator: [ [ Token.no_space_before_rx(/(?:\+\+|--)/) ] ],
 
     atomic_expr: [ [ 'literal' ],
                    [ 'function_expr' ],
@@ -126,9 +172,9 @@ var javascript_grammar = {
                [ Token.string("'"), 'sq_string', Token.string("'") ],
                [ Token.string('/'), 'slash_string', Token.string('/') ] ],
 
-    dq_string: [ [ Token.rx(/^[^"\\]*(\\.[^"\\]*)*/) ] ],
-    sq_string: [ [ Token.rx(/^[^'\\]*(\\.[^'\\]*)*/) ] ],
-    slash_string: [ [ Token.rx(/^[^\/\\]*(\\.[^\/\\]*)*/) ] ],
+    dq_string: [ [ Token.rx(/^[^"\\]*(?:\\.[^"\\]*)*/) ] ],
+    sq_string: [ [ Token.rx(/^[^'\\]*(?:\\.[^'\\]*)*/) ] ],
+    slash_string: [ [ Token.rx(/^[^\/\\]*(?:\\.[^\/\\]*)*/) ] ],
     
     function_expr: [ [ 'function_keyword', Token.string('('), 'arg_list', Token.string(')'), 'block' ] ],
     arg_list: [ [ ], [ 'identifier', 'more_arg_list' ] ],

@@ -154,13 +154,13 @@ var jsmode = magicTokenMode({
         var best = { string: '', states: [] };
         for (var i = 0; i < state.state.tokens.length; ++i) {
             var p = state.state.tokens[i];
-            var pattern = p.symbol.pattern;
-            var m = stream.match(new RegExp('^' + pattern), false);
+            var pattern = new RegExp('^' + p.symbol.pattern);
+            var m = stream.match(pattern, false);
             if (m) {
                 if (typeof(p.symbol) == 'object' && 'text' in p.symbol) {
                     // XXX I do not own this type, it is wrong of me to add properties
                     if (typeof(p.symbol.text) == 'function') {
-                        p.text = p.symbol.text(m);
+                        p.text = p.symbol.text(m, 0);
                     }
                     else {
                         p.text = p.symbol.text;
