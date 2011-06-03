@@ -66,6 +66,16 @@ var split_lines = function(str) {
 };
 // End CodeCatalog Snippet
 
+// CodeCatalog Snippet http://www.codecatalog.net/363/1/
+var shallow_copy = function(obj) {
+    var copy = new Object();
+    for (var key in obj) {
+        copy[key] = obj[key];
+    }
+    return copy;
+};
+// End CodeCatalog Snippet
+
 var magicTokenMode = function(options) {
     var startState = options.startState || function() { return null };
     var copyState = function(s) { return CodeMirror.copyState(options, s) };
@@ -142,10 +152,13 @@ var magicTokenMode = function(options) {
 
 var jsmode = magicTokenMode({
     startState: function() {
-        return { state: EarleyParser(javascript_grammar, 'program') }
+        return { 
+            state: EarleyParser(javascript_grammar, 'program'), 
+            tokstate: Token.init_env() 
+        }
     },
     copyState: function(state) {
-        return { state: state.state }
+        return { state: state.state, tokstate: shallow_copy(state.tokstate) }
     },
     token: function(stream, state) {
         // munch longest token
@@ -160,7 +173,7 @@ var jsmode = magicTokenMode({
                 if (typeof(p.symbol) == 'object' && 'text' in p.symbol) {
                     // XXX I do not own this type, it is wrong of me to add properties
                     if (typeof(p.symbol.text) == 'function') {
-                        p.text = p.symbol.text(m, 0);
+                        p.text = p.symbol.text(m, 0, state.tokstate);
                     }
                     else {
                         p.text = p.symbol.text;
