@@ -18,15 +18,6 @@ var reduce_args_left = function(f) {
 };
 // End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/325/1/
-var repeat_string = function(string, times) {
-    var r = "";
-    for (var i = 0; i < times; i++) {
-        r += string;
-    }
-    return r;
-};
-// End CodeCatalog Snippet
 
 // CodeCatalog Snippet http://www.codecatalog.net/359/1/
 var trace = function() {
@@ -36,19 +27,15 @@ var trace = function() {
 // End CodeCatalog Snippet
 
 var Token = {
-    init_env: function() { return { indent: 0 } },
-
     rx: function(rx) {
         return {
             // pattern is a *string* containing the unanchored source of a regular expression
             pattern: rx.source,
             // groups is the number of capture groups in this regular expression
             groups: 0,
-            // text takes three arguments:
-            //    m: the regexp result match
-            //    offs: the number of match groups before rx appears in the final regex
-            //    env: an arbitrary environment to be passed along (for state)
-            text: function(m,offs,env) { return m[offs] },
+            // text is a function taking the resulting regexp match object and a group
+            // offset
+            text: function(m,offs) { return m[offs] },
         }
     },
     
@@ -60,9 +47,7 @@ var Token = {
         return {
             pattern: '(' + t.pattern + ')' + '(' + u.pattern + ')',
             groups: t.groups + u.groups + 2,
-            text: function(m,offs,env) { 
-                return t.text(m, offs + 1, env) + u.text(m, offs + 1 + t.groups + 1, env);
-            }
+            text: function(m,offs) { return t.text(m, offs+1) + u.text(m, offs + 1 +t.groups + 1) }
         }
     }),
 
@@ -71,40 +56,24 @@ var Token = {
         return {
             pattern: '\\s*(' + t.pattern + ')\\s*',
             groups: 1,
-            text: function(m,offs,env) { return t.text(m, offs+1, env) }
+            text: function(m,offs) { return t.text(m, offs+1) }
         }
     },
 
     space: {
         pattern: '\\s*',
         groups: 0,
-        text: function(m,offs,env) { return ' ' }
+        text: function(m,offs) { return ' ' }
     },
     nospace: {
         pattern: '\\s*',
         groups: 0,
-        text: function(m,offs,env) { return '' }
+        text: function(m,offs) { return '' }
     },
     newline: {
         pattern: '\\s*',
         groups: 0,
-        text: function(m,offs,env) { return '\n' + repeat_string(' ', env.indent) }
-    },
-    indent: {
-        pattern: '',
-        groups: 0,
-        text: function(m,offs,env) {
-            env.indent += 4;
-            return '';
-        }
-    },
-    unindent: {
-        pattern: '',
-        groups: 0,
-        text: function(m,offs,env) {
-            env.indent -= 4;
-            return '';
-        }
+        text: function(m,offs) { return '\n' }
     },
 
     space_after: function(t) {
@@ -211,7 +180,7 @@ var javascript_grammar = {
     arg_list: [ [ ], [ 'identifier', 'more_arg_list' ] ],
     more_arg_list: [ [ ], [ Token.space_after(','), 'identifier', 'more_arg_list' ] ],
 
-    block: [ [ Token.cat(Token.string('{'), Token.indent, Token.newline), 'stmts', Token.cat(Token.unindent, Token.string('}')) ] ],
+    block: [ [ Token.string('{'), 'stmts', Token.string('}') ] ],
 
     array_expr: [ [ Token.string('['), 'expr_list', Token.string(']') ] ],
     
