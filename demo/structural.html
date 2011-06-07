@@ -32,8 +32,20 @@ $(document.body).keydown(function(e) {
         var num = e.which - 48;
         update(zipper = zipper.down(num));
     }
+    else if (37 == e.which) { // left
+        update(zipper = zipper.left());
+    }
     else if (38 == e.which) { // up
         update(zipper = zipper.up());
+    }
+    else if (39 == e.which) { // right
+        update(zipper = zipper.right());
+    }
+    else if (40 == e.which) { // down
+        update(zipper = zipper.down(0));
+    }
+    else {
+        console.log(e.which);
     }
 });
 

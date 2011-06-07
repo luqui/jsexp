@@ -124,6 +124,9 @@ var Zipper = object({
         this.contexts = contexts;
         this.exp = exp;
     },
+    position: function() {
+        return this.contexts[0].args.indexOf(null);
+    },
     up: function() {
         var cx = this.contexts[0];
         return new Zipper(this.contexts.slice(1), cx.fill(this.exp));
@@ -136,6 +139,12 @@ var Zipper = object({
         return new Zipper(
             [new Context(this.exp.head, args)].concat(this.contexts),
             focus);
+    },
+    left: function() {
+        return this.up().down(this.position()-1);
+    },
+    right: function() {
+        return this.up().down(this.position()+1);
     }
 });
 
