@@ -1,0 +1,45 @@
+<html>
+ <head>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
+  <script src="../structural.js"></script>
+
+  <style>
+   .eatom { color: red }
+   .selected { background: #fdd }
+  </style>
+
+  <script>
+$(function() {
+
+var container = elt('div');
+$(document.body).append(container);
+
+var update = function(z) {
+    container.empty();
+    container.append(elt('pre', {}, render_zipper(z)));
+};
+
+var zipper =
+    new Zipper([],  
+        Exp_E.make(
+            Exp_eplus.make(
+                Exp_eatom.make(),
+                Exp_eatom.make())));
+update(zipper);
+
+$(document.body).keydown(function(e) {
+    if (48 <= e.which && e.which < 58) { // number key
+        var num = e.which - 48;
+        update(zipper = zipper.down(num));
+    }
+    else if (38 == e.which) { // up
+        update(zipper = zipper.up());
+    }
+});
+
+});
+  </script>
+ </head>
+ <body>
+ </body>
+</html>
