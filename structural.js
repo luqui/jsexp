@@ -114,8 +114,8 @@ var Exp_plus_token = new EClass({
 
 var Exp_eatom = new EClass({
     cls: 'eatom',
-    render: function() {
-        return [text_node('0')];
+    render: function(lit) {
+        return [lit];
     }
 });
 

@@ -21,7 +21,7 @@ var update = function(z) {
 
 var parser = {
     tokenizer: map_tokenizer(flatten, multi_tokenizer(regexp_tokenizer({
-        '\\d+': function(m) { return [Exp_eatom.make()] },
+        '\\d+': function(m) { return [Exp_eatom.make(m[0])] },
         '\\s+': function(m) { return [] },
         '\\+': function() { return [Exp_plus_token.make()] }
     }))),
@@ -43,7 +43,9 @@ var zipper =
 update(zipper);
 
 var unfocus = function() {
-    if (zipper.expr.head.unfocus) { zipper = zipper.expr.head.unfocus(zipper) }
+    if (typeof(zipper.expr) !== 'string' && zipper.expr.head.unfocus) {     
+        zipper = zipper.expr.head.unfocus(zipper) 
+    }
 };
 
 $(document.body).keydown(function(e) {
@@ -64,12 +66,12 @@ $(document.body).keydown(function(e) {
         update(zipper = zipper.down(0));
     }
     else {
-        console.log(e.which, e.charCode);
+        //console.log(e.which, e.charCode);
     }
 });
 
 $(document.body).keypress(function(e) {
-    if (e.charCode != 0 && zipper.expr.head.keypress) {
+    if (e.charCode != 0 && typeof(zipper.expr) !== 'string' && zipper.expr.head.keypress) {
         update(zipper = zipper.expr.head.keypress(String.fromCharCode(e.charCode), zipper));
     }
 });
