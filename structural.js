@@ -98,6 +98,13 @@ var Exp_E = new EClass({
     },
 });
 
+var Exp_eplus_single = new EClass({
+    cls: 'eplus',
+    render: function(eatom) {
+        return [eatom];
+    }
+});
+
 var Exp_eplus = new EClass({
     cls: 'eplus',
     render: function(eplus, plus_token, eatom) {
@@ -167,6 +174,60 @@ var map_tokenizer = function(f, tokenizer) {
     };
 };
 
+var rewrite_parser = function(rewrites) {
+    var try_rewrites = function(tokens) {
+        var length = 0;
+        var rule = null;
+        var ruleseq = null;
+        for_kv(rewrites, function(k,v) {
+            var seq = k.split(/\s+/);
+            if (seq.length > tokens.length) return;
+
+            var good = true;
+            for (var i = 0; i < seq.length; i++) {
+                if (seq[i] !== tokens[i].head.cls) {
+                    good = false;
+                    break;
+                }
+            }
+
+            if (good) {
+                rule = v;
+                length = seq.length;
+                ruleseq = seq;
+            }
+        });
+
+        if (length > 0) {
+            var result = rule.apply(rule, tokens.slice(0, length));
+            return [result].concat(tokens.slice(length));
+        }
+        else {
+            return null;
+        }
+    };
+    
+    var try_many_rewrites = function(tokens) {
+        var last = try_rewrites(tokens);
+        var final = last;
+        while (last) {
+            final = last;
+            last = try_rewrites(last);
+        }
+        return final;
+    };
+    
+    return function(tokens) {
+        var prefix = [];
+        while (tokens.length > 0) {
+            var presult = try_many_rewrites(tokens);
+            if (presult != null) tokens = presult;
+            prefix.push(tokens[0]);
+            tokens = tokens.slice(1);
+        }
+        return prefix;
+    };
+};
 
 var Exp_unassembled = function(parser) {
     var tokenize = parser.tokenizer;

@@ -25,9 +25,12 @@ var parser = {
         '\\s+': function(m) { return [] },
         '\\+': function() { return [Exp_plus_token.make()] }
     }))),
-    parser: function(toks) {
-        return toks;
-    }
+    parser: rewrite_parser({
+        'eatom': function(eatom) { return Exp_eplus_single.make(eatom) },
+        'eplus plus_token eatom': function(eplus, plus_token, eatom) {
+            return Exp_eplus.make(eplus, plus_token, eatom);
+        }
+    })
 };
 
 var zipper =
