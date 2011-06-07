@@ -1,6 +1,6 @@
 <html>
  <head>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
+  <script src="jquery.min.js"></script>
   <script src="../structural.js"></script>
 
   <style>
@@ -22,7 +22,8 @@ var update = function(z) {
 var parser = {
     tokenizer: map_tokenizer(flatten, multi_tokenizer(regexp_tokenizer({
         '\\d+': function(m) { return [Exp_eatom.make()] },
-        '\\s+': function(m) { return [] }
+        '\\s+': function(m) { return [] },
+        '\\+': function() { return [Exp_plus_token.make()] }
     }))),
     parser: function(toks) {
         return toks;
@@ -41,17 +42,25 @@ var zipper =
 
 update(zipper);
 
+var unfocus = function() {
+    if (zipper.expr.head.unfocus) { zipper = zipper.expr.head.unfocus(zipper) }
+};
+
 $(document.body).keydown(function(e) {
     if (37 == e.which) { // left
+        unfocus();
         update(zipper = zipper.left());
     }
     else if (38 == e.which) { // up
+        unfocus();
         update(zipper = zipper.up());
     }
     else if (39 == e.which) { // right
+        unfocus();
         update(zipper = zipper.right());
     }
     else if (40 == e.which) { // down
+        unfocus();
         update(zipper = zipper.down(0));
     }
     else {
@@ -60,8 +69,8 @@ $(document.body).keydown(function(e) {
 });
 
 $(document.body).keypress(function(e) {
-    if (e.charCode != 0 && zipper.exp.head.keypress) {
-        update(zipper = zipper.exp.head.keypress(String.fromCharCode(e.charCode), zipper));
+    if (e.charCode != 0 && zipper.expr.head.keypress) {
+        update(zipper = zipper.expr.head.keypress(String.fromCharCode(e.charCode), zipper));
     }
 });
 

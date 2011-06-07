@@ -84,6 +84,7 @@ var EClass = object({
         this.cls = opts.cls;
         this.render = opts.render;
         this.keypress = opts.keypress;
+        this.unfocus = opts.unfocus;
     },
     make: function() {
         return new Expr(this, arguments_to_array(arguments));
@@ -129,7 +130,10 @@ var regexp_tokenizer = function(tokens) {
                 bestFunc = v;
             }
         });
-        if (bestFunc) {
+
+        // don't match the whole string in case we are in the middle of typing a token
+        // we use \0 to mean "eof" so this will pass.
+        if (bestFunc && bestMatch[0].length < str.length) {
             return [bestFunc(bestMatch), str.slice(bestMatch[0].length)];
         }
         else {
@@ -168,32 +172,51 @@ var Exp_unassembled = function(parser) {
     var tokenize = parser.tokenizer;
     var parse = parser.parser;
 
+    var scan = function(char, args) {
+        if (args == 0 || typeof(args[args.length-1]) != 'string') {
+            args = args.concat(['']);
+        }
+        
+        var str = args[args.length-1] + char;
+        var tokresult = tokenize(str);
+        if (tokresult) { 
+            var toks = tokresult[0];
+            var remaining = tokresult[1];
+        }
+        else {
+            var toks = [];
+            var remaining = str;
+        }
+
+        var newargs = parse(args.slice(0, args.length-1))
+                           .concat(toks)
+                           .concat(remaining === '' ? [] : [remaining]);
+        return newargs;
+    };
+
     return new EClass({
         cls: 'unassembled',
         render: function() {
             return arguments_to_array(arguments);
         },
         keypress: function(char, zipper) {
-            var args = zipper.exp.args;
-            if (args == 0 || typeof(args[args.length-1]) != 'string') {
-                args = args.concat(['']);
-            }
+            var args = scan(char, zipper.expr.args);
+            return new Zipper(zipper.contexts, new Expr(zipper.expr.head, args));
+        },
+        unfocus: function(zipper) {
+            var args = scan('\0', zipper.expr.args);
             
-            var str = args[args.length-1] + char;
-            var tokresult = tokenize(str);
-            if (tokresult) {
-                var toks = tokresult[0];
-                var remaining = tokresult[1];
+            // remove trailing \0 (yow this is a lot of work)
+            if (args.length > 0) {
+                var lastarg = args[args.length-1];
+                if (lastarg.length > 0 && lastarg[lastarg.length-1] == '\0') {
+                    args[args.length-1] = lastarg.slice(0, lastarg.length-1);
+                }
+                if (args[args.length-1] === '') {
+                    args = args.slice(0, args.length-1);
+                }
             }
-            else {
-                var toks = [];
-                var remaining = str;
-            }
-
-            var newargs = parse(args.slice(0, args.length-1))
-                               .concat(toks)
-                               .concat(remaining === '' ? [] : [remaining]);
-            return new Zipper(zipper.contexts, new Expr(zipper.exp.head, newargs));
+            return new Zipper(zipper.contexts, new Expr(zipper.expr.head, args));
         }
     })
 };
@@ -209,9 +232,9 @@ var Context = object({
 });
 
 var Zipper = object({
-    init: function(contexts, exp) {
+    init: function(contexts, expr) {
         this.contexts = contexts;
-        this.exp = exp;
+        this.expr = expr;
     },
     position: function() {
         return this.contexts[0].args.indexOf(null);
@@ -221,15 +244,15 @@ var Zipper = object({
     },
     up: function() {
         var cx = this.contexts[0];
-        return new Zipper(this.contexts.slice(1), cx.fill(this.exp));
+        return new Zipper(this.contexts.slice(1), cx.fill(this.expr));
     },
     down: function(n) {
-        var args = this.exp.args.slice(0);
+        var args = this.expr.args.slice(0);
         var focus = args[n];
         args[n] = null;
         
         return new Zipper(
-            [new Context(this.exp.head, args)].concat(this.contexts),
+            [new Context(this.expr.head, args)].concat(this.contexts),
             focus);
     },
     left: function() {
@@ -248,21 +271,21 @@ var render_head = function(head, args) {
     return ret;
 };
 
-var render_exp_tree = function(exp) {
-    if (typeof(exp) === 'string') return text_node(exp);
+var render_expr_tree = function(expr) {
+    if (typeof(expr) === 'string') return text_node(expr);
     
     var args = [];
-    foreach(exp.args, function(arg) {
-        args.push(render_exp_tree(arg));
+    foreach(expr.args, function(arg) {
+        args.push(render_expr_tree(arg));
     });
-    return render_head(exp.head, args);
+    return render_head(expr.head, args);
 };
 
 var render_context = function(contexts, hole) {
     var r = hole;
     foreach(contexts, function(cx) {
         var args = cx.args.map(function(a) {
-            return a === null ? r : render_exp_tree(a)
+            return a === null ? r : render_expr_tree(a)
         });
         r = render_head(cx.head, args);
     });
@@ -273,5 +296,5 @@ var render_zipper = function(zipper) {
     return render_context(
         zipper.contexts, 
         elt('span', {'class': 'selected'}, 
-            render_exp_tree(zipper.exp)));
+            render_expr_tree(zipper.expr)));
 };
