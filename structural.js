@@ -66,6 +66,11 @@ var arguments_to_array = function(argobj) {
 };
 // End CodeCatalog Snippet
 
+// CodeCatalog Snippet http://www.codecatalog.net/370/1/
+var flatten = function(AoA) {
+    return Array.prototype.concat.apply([], AoA);
+};
+// End CodeCatalog Snippet
 
 var Expr = object({
     init: function(head, args) {
@@ -94,9 +99,16 @@ var Exp_E = new EClass({
 
 var Exp_eplus = new EClass({
     cls: 'eplus',
-    render: function(eplus, eatom) {
-        return [eplus, text_node(' + '), eatom];
+    render: function(eplus, plus_token, eatom) {
+        return [eplus, plus_token, eatom];
     },
+});
+
+var Exp_plus_token = new EClass({
+    cls: 'plus_token',
+    render: function() {
+        return [text_node(' + ')]
+    }
 });
 
 var Exp_eatom = new EClass({
@@ -106,14 +118,55 @@ var Exp_eatom = new EClass({
     }
 });
 
-var Exp_unassembled = function(grammar) {
-    var tokenize = function(str) {
-        return [[], str];
-    };
+var regexp_tokenizer = function(tokens) { 
+    return function(str) {
+        var bestMatch = null;
+        var bestFunc = null; 
+        for_kv(tokens, function(k,v) {
+            var m = new RegExp('^' + k)(str);
+            if (m && (!bestMatch || m[0].length > bestMatch[0].length)) {
+                bestMatch = m;
+                bestFunc = v;
+            }
+        });
+        if (bestFunc) {
+            return [bestFunc(bestMatch), str.slice(bestMatch[0].length)];
+        }
+        else {
+            return null;
+        }
+    }
+};
 
-    var parse = function(toks) {
-        return toks;
+var multi_tokenizer = function(tokenizer) {
+    return function(str) {
+        var tokresult = tokenizer(str);
+        var ret = [];
+        while (tokresult) {
+            ret.push(tokresult[0]);
+            str = tokresult[1];
+            tokresult = tokenizer(str);
+        }
+        return [ret, str];
     };
+};
+
+var map_tokenizer = function(f, tokenizer) {
+    return function(str) {
+        var tokresult = tokenizer(str);
+        if (tokresult) {
+            return [f(tokresult[0]), tokresult[1]];
+        }
+        else {
+            return null;
+        }
+    };
+};
+
+
+var Exp_unassembled = function(parser) {
+    var tokenize = parser.tokenizer;
+    var parse = parser.parser;
 
     return new EClass({
         cls: 'unassembled',
@@ -128,10 +181,17 @@ var Exp_unassembled = function(grammar) {
             
             var str = args[args.length-1] + char;
             var tokresult = tokenize(str);
-            var toks = tokresult[0];
-            var remaining = tokresult[1];
+            if (tokresult) {
+                var toks = tokresult[0];
+                var remaining = tokresult[1];
+            }
+            else {
+                var toks = [];
+                var remaining = str;
+            }
 
             var newargs = parse(args.slice(0, args.length-1))
+                               .concat(toks)
                                .concat(remaining === '' ? [] : [remaining]);
             return new Zipper(zipper.contexts, new Expr(zipper.exp.head, newargs));
         }

@@ -19,6 +19,16 @@ var update = function(z) {
     container.append(elt('pre', {}, render_zipper(z)));
 };
 
+var parser = {
+    tokenizer: map_tokenizer(flatten, multi_tokenizer(regexp_tokenizer({
+        '\\d+': function(m) { return [Exp_eatom.make()] },
+        '\\s+': function(m) { return [] }
+    }))),
+    parser: function(toks) {
+        return toks;
+    }
+};
+
 var zipper =
 /*
     new Zipper([],  
@@ -27,16 +37,12 @@ var zipper =
                 Exp_eatom.make(),
                 Exp_eatom.make())));
 */
-    new Zipper([], Exp_unassembled({}).make());
+    new Zipper([], Exp_unassembled(parser).make());
 
 update(zipper);
 
 $(document.body).keydown(function(e) {
-    if (48 <= e.which && e.which < 58) { // number key
-        var num = e.which - 48;
-        update(zipper = zipper.down(num));
-    }
-    else if (37 == e.which) { // left
+    if (37 == e.which) { // left
         update(zipper = zipper.left());
     }
     else if (38 == e.which) { // up
