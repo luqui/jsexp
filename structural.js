@@ -277,7 +277,15 @@ var Exp_unassembled = function(parser) {
                     args = args.slice(0, args.length-1);
                 }
             }
-            return new Zipper(zipper.contexts, new Expr(zipper.expr.head, args));
+            
+            // if we have a single thing, the parse was a success
+            // (TODO not necessarily, typecheck I think)
+            if (args.length == 1) {
+                return new Zipper(zipper.contexts, args[0]);
+            }
+            else {
+                return new Zipper(zipper.contexts, new Expr(zipper.expr.head, args));
+            }
         }
     })
 };

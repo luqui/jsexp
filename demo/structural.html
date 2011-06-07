@@ -33,15 +33,7 @@ var parser = {
     })
 };
 
-var zipper =
-/*
-    new Zipper([],  
-        Exp_E.make(
-            Exp_eplus.make(
-                Exp_eatom.make(),
-                Exp_eatom.make())));
-*/
-    new Zipper([], Exp_unassembled(parser).make());
+var zipper = new Zipper([], Exp_unassembled(parser).make());
 
 update(zipper);
 
@@ -69,13 +61,22 @@ $(document.body).keydown(function(e) {
         update(zipper = zipper.down(0));
     }
     else {
-        //console.log(e.which, e.charCode);
+        console.log(e.which, e.charCode);
     }
 });
 
 $(document.body).keypress(function(e) {
-    if (e.charCode != 0 && typeof(zipper.expr) !== 'string' && zipper.expr.head.keypress) {
+    if (typeof(zipper.expr) !== 'string' && zipper.expr.head.keypress) {
         update(zipper = zipper.expr.head.keypress(String.fromCharCode(e.charCode), zipper));
+    }
+    else {
+        var cmd = String.fromCharCode(e.charCode);
+        if (cmd == 'a') {
+            update(zipper = new Zipper(zipper.contexts, Exp_unassembled(parser).make(zipper.expr)));
+        }
+        if (cmd == 'c') {
+            update(zipper = new Zipper(zipper.contexts, Exp_unassembled(parser).make()));
+        }
     }
 });
 
