@@ -77,8 +77,8 @@ var Expr = object({
 var EClass = object({
     init: function(opts) {
         this.cls = opts.cls;
-        this.sig = opts.sig;
         this.render = opts.render;
+        this.keypress = opts.keypress;
     },
     make: function() {
         return new Expr(this, arguments_to_array(arguments));
@@ -87,7 +87,6 @@ var EClass = object({
 
 var Exp_E = new EClass({
     cls: 'E',
-    sig: ['eplus'],
     render: function(eplus) {
         return [eplus];
     },
@@ -95,7 +94,6 @@ var Exp_E = new EClass({
 
 var Exp_eplus = new EClass({
     cls: 'eplus',
-    sig: ['eplus', 'eatom'],
     render: function(eplus, eatom) {
         return [eplus, text_node(' + '), eatom];
     },
@@ -103,14 +101,45 @@ var Exp_eplus = new EClass({
 
 var Exp_eatom = new EClass({
     cls: 'eatom',
-    sig: [],
     render: function() {
         return [text_node('0')];
     }
 });
 
+var Exp_unassembled = function(grammar) {
+    var tokenize = function(str) {
+        return [[], str];
+    };
+
+    var parse = function(toks) {
+        return toks;
+    };
+
+    return new EClass({
+        cls: 'unassembled',
+        render: function() {
+            return arguments_to_array(arguments);
+        },
+        keypress: function(char, zipper) {
+            var args = zipper.exp.args;
+            if (args == 0 || typeof(args[args.length-1]) != 'string') {
+                args = args.concat(['']);
+            }
+            
+            var str = args[args.length-1] + char;
+            var tokresult = tokenize(str);
+            var toks = tokresult[0];
+            var remaining = tokresult[1];
+
+            var newargs = parse(args.slice(0, args.length-1))
+                               .concat(remaining === '' ? [] : [remaining]);
+            return new Zipper(zipper.contexts, new Expr(zipper.exp.head, newargs));
+        }
+    })
+};
+
 var Context = object({
-    init: function(head, args) { // one of args will be null
+    init: function(head, args) { // exactly one of args will be null, this is where the "hole" is
         this.head = head;
         this.args = args;
     },
@@ -126,6 +155,9 @@ var Zipper = object({
     },
     position: function() {
         return this.contexts[0].args.indexOf(null);
+    },
+    arity: function() {
+        return this.contexts[0].args.length;
     },
     up: function() {
         var cx = this.contexts[0];
@@ -157,6 +189,8 @@ var render_head = function(head, args) {
 };
 
 var render_exp_tree = function(exp) {
+    if (typeof(exp) === 'string') return text_node(exp);
+    
     var args = [];
     foreach(exp.args, function(arg) {
         args.push(render_exp_tree(arg));

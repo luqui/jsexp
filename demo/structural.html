@@ -20,11 +20,15 @@ var update = function(z) {
 };
 
 var zipper =
+/*
     new Zipper([],  
         Exp_E.make(
             Exp_eplus.make(
                 Exp_eatom.make(),
                 Exp_eatom.make())));
+*/
+    new Zipper([], Exp_unassembled({}).make());
+
 update(zipper);
 
 $(document.body).keydown(function(e) {
@@ -45,7 +49,13 @@ $(document.body).keydown(function(e) {
         update(zipper = zipper.down(0));
     }
     else {
-        console.log(e.which);
+        console.log(e.which, e.charCode);
+    }
+});
+
+$(document.body).keypress(function(e) {
+    if (e.charCode != 0 && zipper.exp.head.keypress) {
+        update(zipper = zipper.exp.head.keypress(String.fromCharCode(e.charCode), zipper));
     }
 });
 
