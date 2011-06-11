@@ -45,7 +45,7 @@ var foreach = function(array, body) {
 var text_node = function(text) { return document.createTextNode(text) };
 // End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/366/1/
+// CodeCatalog Snippet http://www.codecatalog.net/366/2/
 var replace = function(e, replacement, xs) {
     var r = [];
     foreach(xs, function(x) {
@@ -69,6 +69,60 @@ var arguments_to_array = function(argobj) {
 // CodeCatalog Snippet http://www.codecatalog.net/370/1/
 var flatten = function(AoA) {
     return Array.prototype.concat.apply([], AoA);
+};
+// End CodeCatalog Snippet
+
+// CodeCatalog Snippet http://www.codecatalog.net/378/2/
+var regexp_tokenizer = function(tokens) { 
+    return function(str) {
+        var bestMatch = null;
+        var bestFunc = null; 
+        for_kv(tokens, function(k,v) {
+            var m = new RegExp('^' + k)(str);
+            if (m && (!bestMatch || m[0].length > bestMatch[0].length)) {
+                bestMatch = m;
+                bestFunc = v;
+            }
+        });
+
+        // don't match the whole string in case we are in the middle of typing a token
+        // we use \0 to mean "eof" so this will pass.
+        if (bestFunc && bestMatch[0].length < str.length) {
+            return [bestFunc(bestMatch), str.slice(bestMatch[0].length)];
+        }
+        else {
+            return null;
+        }
+    }
+};
+// End CodeCatalog Snippet
+
+// CodeCatalog Snippet http://www.codecatalog.net/381/1/
+var multi_tokenizer = function(tokenizer) {
+    return function(str) {
+        var tokresult = tokenizer(str);
+        var ret = [];
+        while (tokresult) {
+            ret.push(tokresult[0]);
+            str = tokresult[1];
+            tokresult = tokenizer(str);
+        }
+        return [ret, str];
+    };
+};
+// End CodeCatalog Snippet
+
+// CodeCatalog Snippet http://www.codecatalog.net/383/1/
+var map_tokenizer = function(f, tokenizer) {
+    return function(str) {
+        var tokresult = tokenizer(str);
+        if (tokresult) {
+            return [f(tokresult[0]), tokresult[1]];
+        }
+        else {
+            return null;
+        }
+    };
 };
 // End CodeCatalog Snippet
 
@@ -126,53 +180,7 @@ var Exp_eatom = new EClass({
     }
 });
 
-var regexp_tokenizer = function(tokens) { 
-    return function(str) {
-        var bestMatch = null;
-        var bestFunc = null; 
-        for_kv(tokens, function(k,v) {
-            var m = new RegExp('^' + k)(str);
-            if (m && (!bestMatch || m[0].length > bestMatch[0].length)) {
-                bestMatch = m;
-                bestFunc = v;
-            }
-        });
 
-        // don't match the whole string in case we are in the middle of typing a token
-        // we use \0 to mean "eof" so this will pass.
-        if (bestFunc && bestMatch[0].length < str.length) {
-            return [bestFunc(bestMatch), str.slice(bestMatch[0].length)];
-        }
-        else {
-            return null;
-        }
-    }
-};
-
-var multi_tokenizer = function(tokenizer) {
-    return function(str) {
-        var tokresult = tokenizer(str);
-        var ret = [];
-        while (tokresult) {
-            ret.push(tokresult[0]);
-            str = tokresult[1];
-            tokresult = tokenizer(str);
-        }
-        return [ret, str];
-    };
-};
-
-var map_tokenizer = function(f, tokenizer) {
-    return function(str) {
-        var tokresult = tokenizer(str);
-        if (tokresult) {
-            return [f(tokresult[0]), tokresult[1]];
-        }
-        else {
-            return null;
-        }
-    };
-};
 
 var rewrite_parser = function(rewrites) {
     var try_rewrites = function(tokens) {
