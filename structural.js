@@ -97,21 +97,6 @@ var regexp_tokenizer = function(tokens) {
 };
 // End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/381/1/
-var multi_tokenizer = function(tokenizer) {
-    return function(str) {
-        var tokresult = tokenizer(str);
-        var ret = [];
-        while (tokresult) {
-            ret.push(tokresult[0]);
-            str = tokresult[1];
-            tokresult = tokenizer(str);
-        }
-        return [ret, str];
-    };
-};
-// End CodeCatalog Snippet
-
 // CodeCatalog Snippet http://www.codecatalog.net/383/1/
 var map_tokenizer = function(f, tokenizer) {
     return function(str) {
@@ -162,8 +147,7 @@ var EClass = object({
     render: function() {
         return arguments_to_array(arguments);
     },
-    parse: function(zipper) {
-        var expr = zipper.expr;
+    parse: function(expr) {
         return function(inp) {
             var new_args = expr.args.slice(0);
             for (var i = 0; i < expr.args.length; i++) {
@@ -173,9 +157,9 @@ var EClass = object({
                     continue;
                 }
                 
-                var tokresult = arg.head.parse(zipper.down(i))(inp);
+                var tokresult = arg.head.parse(arg)(inp);
                 if (tokresult) {
-                    new_args[i] = tokresult[0].expr;  // what if the context was changed!
+                    new_args[i] = tokresult[0];
                     inp = tokresult[1];
                 }
                 else {
@@ -183,7 +167,7 @@ var EClass = object({
                     else return null;       // legit failure
                 }
             }
-            return [new Zipper(zipper.contexts, new Expr(expr.head, new_args)), inp];
+            return [new Expr(expr.head, new_args), inp];
         }
     }
 });
@@ -205,11 +189,14 @@ var Exp_box = function(cls, tokenizer) {
                 return [ elt('span', { 'class': 'box' }, text_node(' '))] 
             }
         },
-        parse: function(zipper) {
-            return map_tokenizer(function(expr) { 
-                return new Zipper(zipper.contexts, expr) }, tokenizer)
+        parse: function(expr) {
+            return tokenizer;
         }
     });
+};
+
+var Infix_assoc_box = function(cls, term_tokenizer, op_tokenizer) {
+    
 };
 
 
@@ -262,12 +249,6 @@ var Zipper = object({
         return u.down(this.position()+1);
     },
 });
-
-var zipper_leaves = function(z) {
-    if (z.arity == 0) { return [z] }
-    return flatten(
-        range(0,arity).map(function(i) { return zipper_leaves(z.down(i)) }));
-};
 
 var render_head = function(head, args) {
     var ret = elt('span', { 'class': head.cls });

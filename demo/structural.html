@@ -87,9 +87,9 @@ $(document.body).keydown(function(e) {
 $(document.body).keypress(function(e) {
     if (typeof(zipper.expr) !== 'string') {
         var ch = String.fromCharCode(e.charCode);
-        var tokresult = zipper.expr.head.parse(zipper)(ch);
+        var tokresult = zipper.expr.head.parse(zipper.expr)(ch);
         if (tokresult) {
-            update(tokresult[0]);
+            update(new Zipper(zipper.contexts, tokresult[0]));
         }
     }
 });
