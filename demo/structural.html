@@ -12,6 +12,46 @@
   <script>
 $(function() {
 
+var Exp_eplus_box = Exp_box('eplus', regexp_tokenizer({
+    '\\d+': function(m) { 
+        return Exp_eplus.make(Exp_eatom.make(m[0]), Exp_eplus_cont_box.make()) 
+    }
+}));
+
+var Exp_eplus_cont_box = Exp_box('eplus', regexp_tokenizer({
+    '': function(m) {
+        return Exp_eplus_cont_box.make();
+    },
+    '\\+': function(m) {
+        return Exp_eplus.make(Exp_plus_token.make(), Exp_eplus_box.make())
+    }
+}));
+
+var Exp_E = new EClass({
+    cls: 'E'
+});
+
+var Exp_eplus_single = new EClass({
+    cls: 'eplus'
+});
+
+var Exp_eplus = new EClass({
+    cls: 'eplus'
+});
+
+var Exp_plus_token = new EClass({
+    cls: 'plus_token',
+    render: function() {
+        return [text_node(' + ')]
+    }
+});
+
+var Exp_eatom = new EClass({
+    cls: 'eatom'
+});
+
+
+
 var container = elt('div');
 $(document.body).append(container);
 

@@ -188,36 +188,12 @@ var EClass = object({
     }
 });
 
-var Exp_E = new EClass({
-    cls: 'E'
-});
-
-var Exp_eplus_single = new EClass({
-    cls: 'eplus'
-});
-
-var Exp_eplus = new EClass({
-    cls: 'eplus'
-});
-
-var Exp_plus_token = new EClass({
-    cls: 'plus_token',
-    render: function() {
-        return [text_node(' + ')]
-    }
-});
-
-var Exp_eatom = new EClass({
-    cls: 'eatom'
-});
-
 var Exp_box = function(cls, tokenizer) {
     return new EClass({
         cls: cls,
         render: function() {
             var epsilon = tokenizer('');
             // if it accepts the empty string, then assume that was parsed
-            console.log("Epsilon: ", epsilon);
             if (epsilon) { 
                 // should return epsilon[0].head.render(); }
                 // but that gets us into a infinite loop if we return a box
@@ -236,20 +212,6 @@ var Exp_box = function(cls, tokenizer) {
     });
 };
 
-var Exp_eplus_box = Exp_box('eplus', regexp_tokenizer({
-    '\\d+': function(m) { 
-        return Exp_eplus.make(Exp_eatom.make(m[0]), Exp_eplus_cont_box.make()) 
-    }
-}));
-
-var Exp_eplus_cont_box = Exp_box('eplus', regexp_tokenizer({
-    '': function(m) {
-        return Exp_eplus_cont_box.make();
-    },
-    '\\+': function(m) {
-        return Exp_eplus.make(Exp_plus_token.make(), Exp_eplus_box.make())
-    }
-}));
 
 var Context = object({
     init: function(head, args) { // exactly one of args will be null, this is where the "hole" is
