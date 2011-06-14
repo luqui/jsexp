@@ -195,8 +195,44 @@ var Exp_box = function(cls, tokenizer) {
     });
 };
 
-var Infix_assoc_box = function(cls, term_tokenizer, op_tokenizer) {
-    
+var Infix_assoc_box = function(cls, term_cls, term_tokenizer, op_cls, op_tokenizer) {
+    return new EClass({
+        cls: cls,
+        parse: function(expr) {
+            var self = this;
+            return function(inp) {
+                // XXX __proto__ instead of prototype?
+                var tokresult = self.__proto__.parse.call(self, expr)(inp);
+                if (tokresult && tokresult[1] !== '') {
+                    inp = tokresult[1];
+                    var op_tokresult = op_tokenizer(inp);
+                    if (op_tokresult) {
+                        var term = Exp_box(term_cls, term_tokenizer).make();
+                        var r = tokresult[0];
+                        return [ new Expr(r.head, r.args.concat([ op_tokresult[0], term ])), op_tokresult[1] ];
+                    }
+                    else if (inp == '') {
+                        return [ tokresult[0], inp ];
+                    }
+                    else {
+                        return null;
+                    }
+                }
+                else {
+                    return tokresult;
+                }
+            }
+        },
+        make: function() {
+            if (arguments.length == 0) {  // can't be empty
+                return this.make(Exp_box(term_cls, term_tokenizer).make());
+            }
+            else {
+                // XXX __proto__ instead of prototype?
+                return this.__proto__.make.apply(this, arguments);
+            }
+        }
+    });
 };
 
 
