@@ -55,37 +55,29 @@ var Exp_eatom = new EClass({
 var container = elt('div');
 $(document.body).append(container);
 
+var zipper = new Zipper([], Exp_eplus_box.make());
+
 var update = function(z) {
+    if (!z) return;
+    zipper = z;
     container.empty();
     container.append(elt('pre', {}, render_zipper(z)));
 };
 
-var zipper = new Zipper([], Exp_eplus_box.make());
-
 update(zipper);
-
-var unfocus = function() {
-    if (typeof(zipper.expr) !== 'string' && zipper.expr.head.unfocus) {     
-        zipper = zipper.expr.head.unfocus(zipper) 
-    }
-};
 
 $(document.body).keydown(function(e) {
     if (37 == e.which) { // left
-        unfocus();
-        update(zipper = zipper.left());
+        update(zipper.left());
     }
     else if (38 == e.which) { // up
-        unfocus();
-        update(zipper = zipper.up());
+        update(zipper.up());
     }
     else if (39 == e.which) { // right
-        unfocus();
-        update(zipper = zipper.right());
+        update(zipper.right());
     }
     else if (40 == e.which) { // down
-        unfocus();
-        update(zipper = zipper.down(0));
+        update(zipper.down(0));
     }
     else {
         //console.log(e.which, e.charCode);
@@ -97,7 +89,7 @@ $(document.body).keypress(function(e) {
         var ch = String.fromCharCode(e.charCode);
         var tokresult = zipper.expr.head.parse(zipper)(ch);
         if (tokresult) {
-            update(zipper = tokresult[0]);
+            update(tokresult[0]);
         }
     }
 });

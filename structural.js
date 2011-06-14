@@ -235,10 +235,14 @@ var Zipper = object({
         return this.contexts[0].args.length;
     },
     up: function() {
+        if (this.contexts.length == 0) return null;
+        
         var cx = this.contexts[0];
         return new Zipper(this.contexts.slice(1), cx.fill(this.expr));
     },
     down: function(n) {
+        if (!(0 <= n && typeof(this.expr) === 'object' && n < this.expr.args.length)) return null;
+
         var args = this.expr.args.slice(0);
         var focus = args[n];
         args[n] = null;
@@ -248,10 +252,14 @@ var Zipper = object({
             focus);
     },
     left: function() {
-        return this.up().down(this.position()-1);
+        var u = this.up();
+        if (!u) return null;
+        return u.down(this.position()-1);
     },
     right: function() {
-        return this.up().down(this.position()+1);
+        var u = this.up();
+        if (!u) return null;
+        return u.down(this.position()+1);
     },
 });
 
