@@ -87,7 +87,7 @@ var regexp_tokenizer = function(tokens) {
 
         // don't match the whole string in case we are in the middle of typing a token
         // we use \0 to mean "eof" so this will pass.
-        if (bestFunc && bestMatch[0].length < str.length) {
+        if (bestFunc && (bestMatch[0].length < str.length || true)) {
             return [bestFunc(bestMatch), str.slice(bestMatch[0].length)];
         }
         else {
@@ -126,6 +126,25 @@ var map_tokenizer = function(f, tokenizer) {
 };
 // End CodeCatalog Snippet
 
+// CodeCatalog Snippet http://www.codecatalog.net/385/2/
+var extend = function(target, src) {
+    for (var k in src) {
+        target[k] = src[k];
+    }
+    return target;
+};
+// End CodeCatalog Snippet
+
+// CodeCatalog Snippet http://www.codecatalog.net/387/1/
+var range = function(left, right) {
+    var r = [];
+    for (var i = left; i < right; i++) {
+        r.push(i);
+    }
+    return r;
+};
+// End CodeCatalog Snippet
+
 var Expr = object({
     init: function(head, args) {
         this.head = head;
@@ -135,35 +154,50 @@ var Expr = object({
 
 var EClass = object({
     init: function(opts) {
-        this.cls = opts.cls;
-        this.render = opts.render;
-        this.keypress = opts.keypress;
-        this.unfocus = opts.unfocus;
+        extend(this, opts);
     },
     make: function() {
         return new Expr(this, arguments_to_array(arguments));
     },
-})
-
-var Exp_E = new EClass({
-    cls: 'E',
-    render: function(eplus) {
-        return [eplus];
+    render: function() {
+        return arguments_to_array(arguments);
     },
-});
-
-var Exp_eplus_single = new EClass({
-    cls: 'eplus',
-    render: function(eatom) {
-        return [eatom];
+    parse: function(zipper) {
+        var expr = zipper.expr;
+        return function(inp) {
+            var new_args = expr.args.slice(0);
+            for (var i = 0; i < expr.args.length; i++) {
+                var arg = expr.args[i];
+                if (typeof(arg) === 'string') {
+                    // skip literals, why would they type it if it's already there?  (brackets are an exception)
+                    continue;
+                }
+                
+                var tokresult = arg.head.parse(zipper.down(i))(inp);
+                if (tokresult) {
+                    new_args[i] = tokresult[0].expr;  // what if the context was changed!
+                    inp = tokresult[1];
+                }
+                else {
+                    if (inp === '') break;  // ok, just partial input
+                    else return null;       // legit failure
+                }
+            }
+            return [new Zipper(zipper.contexts, new Expr(expr.head, new_args)), inp];
+        }
     }
 });
 
+var Exp_E = new EClass({
+    cls: 'E'
+});
+
+var Exp_eplus_single = new EClass({
+    cls: 'eplus'
+});
+
 var Exp_eplus = new EClass({
-    cls: 'eplus',
-    render: function(eplus, plus_token, eatom) {
-        return [eplus, plus_token, eatom];
-    },
+    cls: 'eplus'
 });
 
 var Exp_plus_token = new EClass({
@@ -174,129 +208,48 @@ var Exp_plus_token = new EClass({
 });
 
 var Exp_eatom = new EClass({
-    cls: 'eatom',
-    render: function(lit) {
-        return [lit];
-    }
+    cls: 'eatom'
 });
 
-
-
-var rewrite_parser = function(rewrites) {
-    var try_rewrites = function(tokens) {
-        var length = 0;
-        var rule = null;
-        var ruleseq = null;
-        for_kv(rewrites, function(k,v) {
-            var seq = k.split(/\s+/);
-            if (seq.length > tokens.length) return;
-
-            var good = true;
-            for (var i = 0; i < seq.length; i++) {
-                if (seq[i] !== tokens[i].head.cls) {
-                    good = false;
-                    break;
-                }
-            }
-
-            if (good) {
-                rule = v;
-                length = seq.length;
-                ruleseq = seq;
-            }
-        });
-
-        if (length > 0) {
-            var result = rule.apply(rule, tokens.slice(0, length));
-            return [result].concat(tokens.slice(length));
-        }
-        else {
-            return null;
-        }
-    };
-    
-    var try_many_rewrites = function(tokens) {
-        var last = try_rewrites(tokens);
-        var final = last;
-        while (last) {
-            final = last;
-            last = try_rewrites(last);
-        }
-        return final;
-    };
-    
-    return function(tokens) {
-        var prefix = [];
-        while (tokens.length > 0) {
-            var presult = try_many_rewrites(tokens);
-            if (presult != null) tokens = presult;
-            prefix.push(tokens[0]);
-            tokens = tokens.slice(1);
-        }
-        return prefix;
-    };
-};
-
-var Exp_unassembled = function(parser) {
-    var tokenize = parser.tokenizer;
-    var parse = parser.parser;
-
-    var scan = function(char, args) {
-        if (args == 0 || typeof(args[args.length-1]) != 'string') {
-            args = args.concat(['']);
-        }
-        
-        var str = args[args.length-1] + char;
-        var tokresult = tokenize(str);
-        if (tokresult) { 
-            var toks = tokresult[0];
-            var remaining = tokresult[1];
-        }
-        else {
-            var toks = [];
-            var remaining = str;
-        }
-
-        var newargs = parse(args.slice(0, args.length-1))
-                           .concat(toks)
-                           .concat(remaining === '' ? [] : [remaining]);
-        return newargs;
-    };
-
+var Exp_box = function(cls, tokenizer) {
     return new EClass({
-        cls: 'unassembled',
+        cls: cls,
         render: function() {
-            return arguments_to_array(arguments);
+            var epsilon = tokenizer('');
+            // if it accepts the empty string, then assume that was parsed
+            console.log("Epsilon: ", epsilon);
+            if (epsilon) { 
+                // should return epsilon[0].head.render(); }
+                // but that gets us into a infinite loop if we return a box
+                // when parsing empty string, as we would like
+                return [] 
+            }
+            // otherwise display a visible "empty box"
+            else { 
+                return [ elt('span', { 'class': 'box' }, text_node(' '))] 
+            }
         },
-        keypress: function(char, zipper) {
-            var args = scan(char, zipper.expr.args);
-            return new Zipper(zipper.contexts, new Expr(zipper.expr.head, args));
-        },
-        unfocus: function(zipper) {
-            var args = scan('\0', zipper.expr.args);
-            
-            // remove trailing \0 (yow this is a lot of work)
-            if (args.length > 0) {
-                var lastarg = args[args.length-1];
-                if (lastarg.length > 0 && lastarg[lastarg.length-1] == '\0') {
-                    args[args.length-1] = lastarg.slice(0, lastarg.length-1);
-                }
-                if (args[args.length-1] === '') {
-                    args = args.slice(0, args.length-1);
-                }
-            }
-            
-            // if we have a single thing, the parse was a success
-            // (TODO not necessarily, typecheck I think)
-            if (args.length == 1) {
-                return new Zipper(zipper.contexts, args[0]);
-            }
-            else {
-                return new Zipper(zipper.contexts, new Expr(zipper.expr.head, args));
-            }
+        parse: function(zipper) {
+            return map_tokenizer(function(expr) { 
+                return new Zipper(zipper.contexts, expr) }, tokenizer)
         }
-    })
+    });
 };
+
+var Exp_eplus_box = Exp_box('eplus', regexp_tokenizer({
+    '\\d+': function(m) { 
+        return Exp_eplus.make(Exp_eatom.make(m[0]), Exp_eplus_cont_box.make()) 
+    }
+}));
+
+var Exp_eplus_cont_box = Exp_box('eplus', regexp_tokenizer({
+    '': function(m) {
+        return Exp_eplus_cont_box.make();
+    },
+    '\\+': function(m) {
+        return Exp_eplus.make(Exp_plus_token.make(), Exp_eplus_box.make())
+    }
+}));
 
 var Context = object({
     init: function(head, args) { // exactly one of args will be null, this is where the "hole" is
@@ -337,8 +290,14 @@ var Zipper = object({
     },
     right: function() {
         return this.up().down(this.position()+1);
-    }
+    },
 });
+
+var zipper_leaves = function(z) {
+    if (z.arity == 0) { return [z] }
+    return flatten(
+        range(0,arity).map(function(i) { return zipper_leaves(z.down(i)) }));
+};
 
 var render_head = function(head, args) {
     var ret = elt('span', { 'class': head.cls });

@@ -6,6 +6,7 @@
   <style>
    .eatom { color: red }
    .selected { background: #fdd }
+   .box { background: lightgreen }
   </style>
 
   <script>
@@ -19,21 +20,7 @@ var update = function(z) {
     container.append(elt('pre', {}, render_zipper(z)));
 };
 
-var parser = {
-    tokenizer: map_tokenizer(flatten, multi_tokenizer(regexp_tokenizer({
-        '\\d+': function(m) { return [Exp_eatom.make(m[0])] },
-        '\\s+': function(m) { return [] },
-        '\\+': function() { return [Exp_plus_token.make()] }
-    }))),
-    parser: rewrite_parser({
-        'eatom': function(eatom) { return Exp_eplus_single.make(eatom) },
-        'eplus plus_token eatom': function(eplus, plus_token, eatom) {
-            return Exp_eplus.make(eplus, plus_token, eatom);
-        }
-    })
-};
-
-var zipper = new Zipper([], Exp_unassembled(parser).make());
+var zipper = new Zipper([], Exp_eplus_box.make());
 
 update(zipper);
 
@@ -66,16 +53,11 @@ $(document.body).keydown(function(e) {
 });
 
 $(document.body).keypress(function(e) {
-    if (typeof(zipper.expr) !== 'string' && zipper.expr.head.keypress) {
-        update(zipper = zipper.expr.head.keypress(String.fromCharCode(e.charCode), zipper));
-    }
-    else {
-        var cmd = String.fromCharCode(e.charCode);
-        if (cmd == 'a') {
-            update(zipper = new Zipper(zipper.contexts, Exp_unassembled(parser).make(zipper.expr)));
-        }
-        if (cmd == 'c') {
-            update(zipper = new Zipper(zipper.contexts, Exp_unassembled(parser).make()));
+    if (typeof(zipper.expr) !== 'string') {
+        var ch = String.fromCharCode(e.charCode);
+        var tokresult = zipper.expr.head.parse(zipper)(ch);
+        if (tokresult) {
+            update(zipper = tokresult[0]);
         }
     }
 });
