@@ -52,17 +52,18 @@ var update = function(z) {
 update(zipper);
 
 $(document.body).keydown(function(e) {
+    var head = typeof(zipper.expr) === 'string' ? new EClass({}) : zipper.expr.head;
     if (37 == e.which) { // left
-        update(zipper.left());
+        update(head.nav_left(zipper));
     }
     else if (38 == e.which) { // up
-        update(zipper.up());
+        update(head.nav_up(zipper));
     }
     else if (39 == e.which) { // right
-        update(zipper.right());
+        update(head.nav_right(zipper));
     }
     else if (40 == e.which) { // down
-        update(zipper.down(0));
+        update(head.nav_down(zipper));
     }
     else {
         //console.log(e.which, e.charCode);

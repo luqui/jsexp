@@ -130,6 +130,26 @@ var range = function(left, right) {
 };
 // End CodeCatalog Snippet
 
+// CodeCatalog Snippet http://www.codecatalog.net/359/1/
+var trace = function() {
+    console.log.apply(console, arguments);
+    return arguments[arguments.length-1];
+};
+// End CodeCatalog Snippet
+
+var splice_replace = function(e, replacements, xs) {
+    var r = [];
+    foreach(xs, function(x) {
+        if (x === e) {
+            r.push.apply(r, replacements);
+        }
+        else {
+            r.push(x);
+        }
+    });
+    return r;
+};
+
 var Expr = object({
     init: function(head, args) {
         this.head = head;
@@ -169,7 +189,11 @@ var EClass = object({
             }
             return [new Expr(expr.head, new_args), inp];
         }
-    }
+    },
+    nav_up: function(zipper) { return zipper.up() },
+    nav_down: function(zipper) { return zipper.down(0) },
+    nav_left: function(zipper) { return zipper.left() },
+    nav_right: function(zipper) { return zipper.right() }
 });
 
 var Exp_box = function(cls, tokenizer) {
@@ -196,6 +220,21 @@ var Exp_box = function(cls, tokenizer) {
 };
 
 var Infix_assoc_box = function(cls, term_cls, term_tokenizer, op_cls, op_tokenizer) {
+    return new EClass({
+        cls: cls,
+        make: function() {
+            var view = Infix_assoc_view(cls, term_cls, term_tokenizer, op_cls, op_tokenizer);
+            return this.__proto__.make.call(this, view.make.apply(view, arguments));
+        }
+    });
+};
+
+var Infix_assoc_view = function(cls, term_cls, term_tokenizer, op_cls, op_tokenizer) {
+    var slice_zipper = function(zipper, cxargs, args) {
+        return new Zipper([new Context(zipper.contexts[0].head, cxargs)].concat(zipper.contexts.slice(1)),
+                          new Expr(zipper.expr.head, args));
+    };
+
     return new EClass({
         cls: cls,
         parse: function(expr) {
@@ -231,6 +270,81 @@ var Infix_assoc_box = function(cls, term_cls, term_tokenizer, op_cls, op_tokeniz
                 // XXX __proto__ instead of prototype?
                 return this.__proto__.make.apply(this, arguments);
             }
+        },
+        nav_down: function(zipper) {
+            var args = zipper.expr.args;
+
+            if (args.length == 1) {
+                return zipper.down(0);
+            }
+
+            var newargs = args.slice(0, args.length-2);  // 2 = one operand, one operator
+            var newcxargs = splice_replace(null, [null, args[args.length-2], args[args.length-1]], zipper.contexts[0].args);
+
+            return slice_zipper(zipper, newcxargs, newargs);
+        },
+        nav_up: function(zipper) {
+            var cxargs = zipper.contexts[0].args;
+            var args = zipper.expr.args;
+            if (cxargs.length == 1) {
+                return zipper.up();
+            }
+            
+            var pos = cxargs.indexOf(null);
+
+            if (pos == cxargs.length-1) {   // get the two thingies to the left
+                var newargs = cxargs.slice(cxargs.length-3, cxargs.length-1).concat(args);
+                var newcxargs = cxargs.slice(0, cxargs.length-3).concat([null]);
+            }
+            else if (pos == 0 || args.length > 1 || pos % 2 == 0) { // get the two thingies to the right
+                var newargs = args.concat(cxargs.slice(pos+1, pos+3));
+                var newcxargs = cxargs.slice(0, pos).concat([null], cxargs.slice(pos+3));
+            }
+            else {
+                // we must be on an operator
+                var newargs = [].concat([cxargs[pos-1]], args, [cxargs[pos+1]]);
+                var newcxargs = cxargs.slice(0, pos-1).concat([null], cxargs.slice(pos+2));
+            }
+            
+            return slice_zipper(zipper, newcxargs, newargs);
+        },
+        nav_right: function(zipper) {
+            var cxargs = zipper.contexts[0].args;
+            var args = zipper.expr.args;
+            var pos = cxargs.indexOf(null);
+            
+            if (cxargs.length == 1) return null;
+            if (pos == cxargs.length-1) return null;
+
+            if (args.length == 1) {
+                var newargs = [cxargs[pos+1]];
+                var newcxargs = cxargs.slice(0, pos).concat([args[0], null], cxargs.slice(pos+2));
+            }
+            else {
+                var newargs = args.slice(2).concat(cxargs.slice(pos+1, pos+3));
+                var newcxargs = cxargs.slice(0, pos).concat(args.slice(0,2), [null], cxargs.slice(pos+3));
+            }
+
+            return slice_zipper(zipper, newcxargs, newargs);
+        },
+        nav_left: function(zipper) {
+            var cxargs = zipper.contexts[0].args;
+            var args = zipper.expr.args;
+            var pos = cxargs.indexOf(null);
+            
+            if (cxargs.length == 1) return null;
+            if (pos == 0) return null;
+
+            if (args.length == 1) {
+                var newargs = [cxargs[pos-1]];
+                var newcxargs = cxargs.slice(0, pos-1).concat([null, args[0]], cxargs.slice(pos+1));
+            }
+            else {
+                var newargs = cxargs.slice(pos-2,pos).concat(args.slice(0, args.length-2));
+                var newcxargs = cxargs.slice(0, pos-2).concat([null], args.slice(args.length-2), cxargs.slice(pos+1));
+            }
+
+            return slice_zipper(zipper, newcxargs, newargs);
         }
     });
 };
