@@ -87,7 +87,7 @@ var regexp_tokenizer = function(tokens) {
 
         // don't match the whole string in case we are in the middle of typing a token
         // we use \0 to mean "eof" so this will pass.
-        if (bestFunc && (bestMatch[0].length < str.length || true)) {
+        if (bestFunc && bestMatch[0].length < str.length) {
             return [bestFunc(bestMatch), str.slice(bestMatch[0].length)];
         }
         else {
@@ -137,6 +137,7 @@ var trace = function() {
 };
 // End CodeCatalog Snippet
 
+// CodeCatalog Snippet http://www.codecatalog.net/389/2/
 var splice_replace = function(e, replacements, xs) {
     var r = [];
     foreach(xs, function(x) {
@@ -149,6 +150,8 @@ var splice_replace = function(e, replacements, xs) {
     });
     return r;
 };
+// End CodeCatalog Snippet
+
 
 var Expr = object({
     init: function(head, args) {
@@ -429,9 +432,14 @@ var render_context = function(contexts, hole) {
     return r;
 };
 
-var render_zipper = function(zipper) {
+var render_zipper_with = function(zipper, f) {
     return render_context(
-        zipper.contexts, 
-        elt('span', {'class': 'selected'}, 
-            render_expr_tree(zipper.expr)));
+        zipper.contexts,
+        f(render_expr_tree(zipper.expr)));
+};
+
+var render_zipper = function(zipper) {
+    return render_zipper_with(zipper, function(t) { 
+        return elt('span', {'class': 'selected'}, t);
+    });
 };

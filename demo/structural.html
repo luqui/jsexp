@@ -40,44 +40,66 @@ var Exp_eatom = new EClass({
 var container = elt('div');
 $(document.body).append(container);
 
+var buffer = '';
+
 var zipper = new Zipper([], Exp_eplus_box.make());
 
 var update = function(z) {
     if (!z) return;
     zipper = z;
     container.empty();
-    container.append(elt('pre', {}, render_zipper(z)));
+    container.append(elt('pre', {}, render_zipper_with(z, function(t) { 
+        return elt('span', {'class': 'selected'}, t, text_node(buffer)) 
+    })));
 };
 
 update(zipper);
 
 $(document.body).keydown(function(e) {
     var head = typeof(zipper.expr) === 'string' ? new EClass({}) : zipper.expr.head;
+
+    var navigate = function(dir) {
+        buffer = '';
+        update(head[dir].call(head, zipper));
+    };
+
     if (37 == e.which) { // left
-        update(head.nav_left(zipper));
+        navigate('nav_left');
     }
     else if (38 == e.which) { // up
-        update(head.nav_up(zipper));
+        navigate('nav_up');
     }
     else if (39 == e.which) { // right
-        update(head.nav_right(zipper));
+        navigate('nav_right');
     }
     else if (40 == e.which) { // down
-        update(head.nav_down(zipper));
+        navigate('nav_down');
+    }
+    else if (8 == e.which) { // backspace
+        buffer = buffer.slice(0, buffer.length-1);
+        update(zipper);
+        return false;  // prevent browser from handling it
     }
     else {
         //console.log(e.which, e.charCode);
     }
 });
 
+
 $(document.body).keypress(function(e) {
     if (typeof(zipper.expr) !== 'string') {
         var ch = String.fromCharCode(e.charCode);
-        var tokresult = zipper.expr.head.parse(zipper.expr)(ch);
+        buffer += ch;
+        var tokresult = zipper.expr.head.parse(zipper.expr)(buffer);
         if (tokresult) {
+            buffer = tokresult[1];
             update(new Zipper(zipper.contexts, tokresult[0]));
         }
+        else {
+            update(zipper);
+        }
     }
+    return false;
 });
 
 });
