@@ -186,8 +186,7 @@ var EClass = object({
                     inp = tokresult[1];
                 }
                 else {
-                    if (inp === '') break;  // ok, just partial input
-                    else return null;       // legit failure
+                    break;
                 }
             }
             return [new Expr(expr.head, new_args), inp];
@@ -253,11 +252,8 @@ var Infix_assoc_view = function(cls, term_cls, term_tokenizer, op_cls, op_tokeni
                         var r = tokresult[0];
                         return [ new Expr(r.head, r.args.concat([ op_tokresult[0], term ])), op_tokresult[1] ];
                     }
-                    else if (inp == '') {
-                        return [ tokresult[0], inp ];
-                    }
                     else {
-                        return null;
+                        return tokresult;
                     }
                 }
                 else {
