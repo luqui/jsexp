@@ -10,9 +10,64 @@
   </style>
 
   <script>
-$(function() {
 
-var Exp_eplus_box = Infix_assoc_box('eplus', 
+var main = function($, SF) {
+
+// CodeCatalog Snippet http://www.codecatalog.net/323/2/
+var for_kv = function(object, body) {
+    for (var k in object) {
+        if (object.hasOwnProperty(k)) {
+            body(k, object[k]);
+        }
+    }
+};
+// End CodeCatalog Snippet
+
+// CodeCatalog Snippet http://www.codecatalog.net/378/2/
+var regexp_tokenizer = function(tokens) { 
+    return function(str) {
+        var bestMatch = null;
+        var bestFunc = null; 
+        for_kv(tokens, function(k,v) {
+            var m = new RegExp('^' + k)(str);
+            if (m && (!bestMatch || m[0].length > bestMatch[0].length)) {
+                bestMatch = m;
+                bestFunc = v;
+            }
+        });
+
+        // don't match the whole string in case we are in the middle of typing a token
+        // we use \0 to mean "eof" so this will pass.
+        if (bestFunc && bestMatch[0].length < str.length) {
+            return [bestFunc(bestMatch), str.slice(bestMatch[0].length)];
+        }
+        else {
+            return null;
+        }
+    }
+};
+// End CodeCatalog Snippet
+
+// CodeCatalog Snippet http://www.codecatalog.net/256/1/
+var text_node = function(text) { return document.createTextNode(text) };
+// End CodeCatalog Snippet
+
+// CodeCatalog Snippet http://www.codecatalog.net/16/3/
+var elt = function(name, attrs) {
+    var r = $(document.createElement(name));
+    if (attrs) {
+        for (var i in attrs) {
+            r.attr(i, attrs[i]);
+        }
+    }
+    for (var i = 2; i < arguments.length; ++i) {
+        r.append(arguments[i]);
+    }
+    return r;
+};
+// End CodeCatalog Snippet
+
+var Exp_eplus_box = SF.Infix_assoc_box('eplus', 
     'eatom', regexp_tokenizer({
         '\\d+': function(m) {
             return Exp_eatom.make(m[0]);
@@ -24,14 +79,14 @@ var Exp_eplus_box = Infix_assoc_box('eplus',
         }
     }));
 
-var Exp_plus_token = new EClass({
+var Exp_plus_token = new SF.EClass({
     cls: 'plus_token',
     render: function() {
         return [text_node(' + ')]
     }
 });
 
-var Exp_eatom = new EClass({
+var Exp_eatom = new SF.EClass({
     cls: 'eatom'
 });
 
@@ -42,13 +97,13 @@ $(document.body).append(container);
 
 var buffer = '';
 
-var zipper = new Zipper([], Exp_eplus_box.make());
+var zipper = new SF.Zipper([], Exp_eplus_box.make());
 
 var update = function(z) {
     if (!z) return;
     zipper = z;
     container.empty();
-    container.append(elt('pre', {}, render_zipper_with(z, function(t) { 
+    container.append(elt('pre', {}, SF.render_zipper_with(z, function(t) { 
         return elt('span', {'class': 'selected'}, t, text_node(buffer)) 
     })));
 };
@@ -56,7 +111,7 @@ var update = function(z) {
 update(zipper);
 
 $(document.body).keydown(function(e) {
-    var head = typeof(zipper.expr) === 'string' ? new EClass({}) : zipper.expr.head;
+    var head = typeof(zipper.expr) === 'string' ? new SF.EClass({}) : zipper.expr.head;
 
     var navigate = function(dir) {
         buffer = '';
@@ -93,7 +148,7 @@ $(document.body).keypress(function(e) {
         var tokresult = zipper.expr.head.parse(zipper.expr)(buffer);
         if (tokresult) {
             buffer = tokresult[1];
-            update(new Zipper(zipper.contexts, tokresult[0]));
+            update(new SF.Zipper(zipper.contexts, tokresult[0]));
         }
         else {
             update(zipper);
@@ -102,7 +157,13 @@ $(document.body).keypress(function(e) {
     return false;
 });
 
+};
+
+jQuery(function() {
+    main(jQuery, StructuralFramework(jQuery));
 });
+
+
   </script>
  </head>
  <body>

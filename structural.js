@@ -1,3 +1,5 @@
+StructuralFramework = function() {
+
 // CodeCatalog Snippet http://www.codecatalog.net/323/2/
 var for_kv = function(object, body) {
     for (var k in object) {
@@ -72,30 +74,6 @@ var flatten = function(AoA) {
 };
 // End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/378/2/
-var regexp_tokenizer = function(tokens) { 
-    return function(str) {
-        var bestMatch = null;
-        var bestFunc = null; 
-        for_kv(tokens, function(k,v) {
-            var m = new RegExp('^' + k)(str);
-            if (m && (!bestMatch || m[0].length > bestMatch[0].length)) {
-                bestMatch = m;
-                bestFunc = v;
-            }
-        });
-
-        // don't match the whole string in case we are in the middle of typing a token
-        // we use \0 to mean "eof" so this will pass.
-        if (bestFunc && bestMatch[0].length < str.length) {
-            return [bestFunc(bestMatch), str.slice(bestMatch[0].length)];
-        }
-        else {
-            return null;
-        }
-    }
-};
-// End CodeCatalog Snippet
 
 // CodeCatalog Snippet http://www.codecatalog.net/383/1/
 var map_tokenizer = function(f, tokenizer) {
@@ -152,20 +130,21 @@ var splice_replace = function(e, replacements, xs) {
 };
 // End CodeCatalog Snippet
 
+var $$ = {};
 
-var Expr = object({
+$$.Expr = object({
     init: function(head, args) {
         this.head = head;
         this.args = args;
     }
 });
 
-var EClass = object({
+$$.EClass = object({
     init: function(opts) {
         extend(this, opts);
     },
     make: function() {
-        return new Expr(this, arguments_to_array(arguments));
+        return new $$.Expr(this, arguments_to_array(arguments));
     },
     render: function() {
         return arguments_to_array(arguments);
@@ -189,7 +168,7 @@ var EClass = object({
                     break;
                 }
             }
-            return [new Expr(expr.head, new_args), inp];
+            return [new $$.Expr(expr.head, new_args), inp];
         }
     },
     nav_up: function(zipper) { return zipper.up() },
@@ -198,8 +177,8 @@ var EClass = object({
     nav_right: function(zipper) { return zipper.right() }
 });
 
-var Exp_box = function(cls, tokenizer) {
-    return new EClass({
+$$.Exp_box = function(cls, tokenizer) {
+    return new $$.EClass({
         cls: cls,
         render: function() {
             var epsilon = tokenizer('');
@@ -221,23 +200,23 @@ var Exp_box = function(cls, tokenizer) {
     });
 };
 
-var Infix_assoc_box = function(cls, term_cls, term_tokenizer, op_cls, op_tokenizer) {
-    return new EClass({
+$$.Infix_assoc_box = function(cls, term_cls, term_tokenizer, op_cls, op_tokenizer) {
+    return new $$.EClass({
         cls: cls,
         make: function() {
-            var view = Infix_assoc_view(cls, term_cls, term_tokenizer, op_cls, op_tokenizer);
+            var view = $$.Infix_assoc_view(cls, term_cls, term_tokenizer, op_cls, op_tokenizer);
             return this.__proto__.make.call(this, view.make.apply(view, arguments));
         }
     });
 };
 
-var Infix_assoc_view = function(cls, term_cls, term_tokenizer, op_cls, op_tokenizer) {
+$$.Infix_assoc_view = function(cls, term_cls, term_tokenizer, op_cls, op_tokenizer) {
     var slice_zipper = function(zipper, cxargs, args) {
-        return new Zipper([new Context(zipper.contexts[0].head, cxargs)].concat(zipper.contexts.slice(1)),
-                          new Expr(zipper.expr.head, args));
+        return new Zipper([new $$.Context(zipper.contexts[0].head, cxargs)].concat(zipper.contexts.slice(1)),
+                          new $$.Expr(zipper.expr.head, args));
     };
 
-    return new EClass({
+    return new $$.EClass({
         cls: cls,
         parse: function(expr) {
             var self = this;
@@ -248,9 +227,9 @@ var Infix_assoc_view = function(cls, term_cls, term_tokenizer, op_cls, op_tokeni
                     inp = tokresult[1];
                     var op_tokresult = op_tokenizer(inp);
                     if (op_tokresult) {
-                        var term = Exp_box(term_cls, term_tokenizer).make();
+                        var term = $$.Exp_box(term_cls, term_tokenizer).make();
                         var r = tokresult[0];
-                        return [ new Expr(r.head, r.args.concat([ op_tokresult[0], term ])), op_tokresult[1] ];
+                        return [ new $$.Expr(r.head, r.args.concat([ op_tokresult[0], term ])), op_tokresult[1] ];
                     }
                     else {
                         return tokresult;
@@ -263,7 +242,7 @@ var Infix_assoc_view = function(cls, term_cls, term_tokenizer, op_cls, op_tokeni
         },
         make: function() {
             if (arguments.length == 0) {  // can't be empty
-                return this.make(Exp_box(term_cls, term_tokenizer).make());
+                return this.make($$.Exp_box(term_cls, term_tokenizer).make());
             }
             else {
                 // XXX __proto__ instead of prototype?
@@ -349,17 +328,17 @@ var Infix_assoc_view = function(cls, term_cls, term_tokenizer, op_cls, op_tokeni
 };
 
 
-var Context = object({
+$$.Context = object({
     init: function(head, args) { // exactly one of args will be null, this is where the "hole" is
         this.head = head;
         this.args = args;
     },
     fill: function(hole) {
-        return new Expr(this.head, replace(null, hole, this.args));
+        return new $$.Expr(this.head, replace(null, hole, this.args));
     }
 });
 
-var Zipper = object({
+$$.Zipper = object({
     init: function(contexts, expr) {
         this.contexts = contexts;
         this.expr = expr;
@@ -374,7 +353,7 @@ var Zipper = object({
         if (this.contexts.length == 0) return null;
         
         var cx = this.contexts[0];
-        return new Zipper(this.contexts.slice(1), cx.fill(this.expr));
+        return new $$.Zipper(this.contexts.slice(1), cx.fill(this.expr));
     },
     down: function(n) {
         if (!(0 <= n && typeof(this.expr) === 'object' && n < this.expr.args.length)) return null;
@@ -383,8 +362,8 @@ var Zipper = object({
         var focus = args[n];
         args[n] = null;
         
-        return new Zipper(
-            [new Context(this.expr.head, args)].concat(this.contexts),
+        return new $$.Zipper(
+            [new $$.Context(this.expr.head, args)].concat(this.contexts),
             focus);
     },
     left: function() {
@@ -428,14 +407,18 @@ var render_context = function(contexts, hole) {
     return r;
 };
 
-var render_zipper_with = function(zipper, f) {
+$$.render_zipper_with = function(zipper, f) {
     return render_context(
         zipper.contexts,
         f(render_expr_tree(zipper.expr)));
 };
 
-var render_zipper = function(zipper) {
-    return render_zipper_with(zipper, function(t) { 
+$$.render_zipper = function(zipper) {
+    return $$.render_zipper_with(zipper, function(t) { 
         return elt('span', {'class': 'selected'}, t);
     });
+};
+
+return $$;
+
 };
