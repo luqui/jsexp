@@ -1,3 +1,6 @@
+
+// StructuralFramework : jQuery -> Module
+
 StructuralFramework = function($) {
 
 // CodeCatalog Snippet http://www.codecatalog.net/323/2/
