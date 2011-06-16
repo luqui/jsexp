@@ -83,7 +83,8 @@ var Exp_eatom = new SF.EClass({
 */
 
 var top_class = SG.grammar('exp', {
-    'exp': SG.seq(SG.token(/hello/), SG.literal('+'), SG.token(/world/))
+    'exp': SG.seq(SG.token(/hello/), SG.literal('+'), SG.sym('world')),
+    'world': SG.token(/world/)
 });
 
 var top_node  = top_class.make();
