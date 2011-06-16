@@ -3,6 +3,7 @@
   <script src="jquery.min.js"></script>
   <script src="../StructuralFramework.js"></script>
   <script src="../StructuralEditor.js"></script>
+  <script src="../StructuralGrammar.js"></script>
 
   <style>
    .eatom { color: red }
@@ -13,7 +14,7 @@
   <script>
 
 // main : jQuery * StructuralFramework * (top_node -> StructuralEditor) -> Module
-var main = function($, SF, SE) {
+var main = function($, SF, SG, SE) {
 
 // CodeCatalog Snippet http://www.codecatalog.net/323/2/
 var for_kv = function(object, body) {
@@ -56,6 +57,7 @@ var text_node = function(text) { return document.createTextNode(text) };
 // End CodeCatalog Snippet
 
 
+/*
 var Exp_eplus_box = SF.Infix_assoc_box('eplus', 
     'eatom', regexp_tokenizer({
         '\\d+': function(m) {
@@ -78,8 +80,13 @@ var Exp_plus_token = new SF.EClass({
 var Exp_eatom = new SF.EClass({
     cls: 'eatom'
 });
+*/
 
-var top_node  = Exp_eplus_box.make();
+var top_class = SG.grammar('exp', {
+    'exp': SG.seq(SG.token(/hello/), SG.literal('+'), SG.token(/world/))
+});
+
+var top_node  = top_class.make();
 var editor = SE(top_node, $(document));
 
 $(document.body).append(editor);
@@ -89,9 +96,11 @@ $(document.body).append(editor);
 
 jQuery(function() {
     var SF = StructuralFramework(jQuery);
+    var SG = StructuralGrammar(SF);
     main(
         jQuery, 
         SF,
+        SG,
         function(top_node, event_node) { 
             return StructuralEditor(jQuery, SF, top_node, event_node) 
         }

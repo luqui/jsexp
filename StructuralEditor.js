@@ -2,7 +2,6 @@
 
 StructuralEditor = function($, SF, top_node, event_node) {
 
-
 // CodeCatalog Snippet http://www.codecatalog.net/16/3/
 var elt = function(name, attrs) {
     var r = $(document.createElement(name));
