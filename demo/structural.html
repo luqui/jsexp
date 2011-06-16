@@ -2,6 +2,7 @@
  <head>
   <script src="jquery.min.js"></script>
   <script src="../StructuralFramework.js"></script>
+  <script src="../StructuralEditor.js"></script>
 
   <style>
    .eatom { color: red }
@@ -11,7 +12,8 @@
 
   <script>
 
-var main = function($, SF) {
+// main : jQuery * StructuralFramework * (top_node -> StructuralEditor) -> Module
+var main = function($, SF, SE) {
 
 // CodeCatalog Snippet http://www.codecatalog.net/323/2/
 var for_kv = function(object, body) {
@@ -22,6 +24,7 @@ var for_kv = function(object, body) {
     }
 };
 // End CodeCatalog Snippet
+
 
 // CodeCatalog Snippet http://www.codecatalog.net/378/2/
 var regexp_tokenizer = function(tokens) { 
@@ -52,20 +55,6 @@ var regexp_tokenizer = function(tokens) {
 var text_node = function(text) { return document.createTextNode(text) };
 // End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/16/3/
-var elt = function(name, attrs) {
-    var r = $(document.createElement(name));
-    if (attrs) {
-        for (var i in attrs) {
-            r.attr(i, attrs[i]);
-        }
-    }
-    for (var i = 2; i < arguments.length; ++i) {
-        r.append(arguments[i]);
-    }
-    return r;
-};
-// End CodeCatalog Snippet
 
 var Exp_eplus_box = SF.Infix_assoc_box('eplus', 
     'eatom', regexp_tokenizer({
@@ -90,77 +79,24 @@ var Exp_eatom = new SF.EClass({
     cls: 'eatom'
 });
 
+var top_node  = Exp_eplus_box.make();
+var editor = SE(top_node, $(document));
 
-
-var container = elt('div');
-$(document.body).append(container);
-
-var buffer = '';
-
-var zipper = new SF.Zipper([], Exp_eplus_box.make());
-
-var update = function(z) {
-    if (!z) return;
-    zipper = z;
-    container.empty();
-    container.append(elt('pre', {}, SF.render_zipper_with(z, function(t) { 
-        return elt('span', {'class': 'selected'}, t, text_node(buffer)) 
-    })));
-};
-
-update(zipper);
-
-$(document.body).keydown(function(e) {
-    var head = typeof(zipper.expr) === 'string' ? new SF.EClass({}) : zipper.expr.head;
-
-    var navigate = function(dir) {
-        buffer = '';
-        update(head[dir].call(head, zipper));
-    };
-
-    if (37 == e.which) { // left
-        navigate('nav_left');
-    }
-    else if (38 == e.which) { // up
-        navigate('nav_up');
-    }
-    else if (39 == e.which) { // right
-        navigate('nav_right');
-    }
-    else if (40 == e.which) { // down
-        navigate('nav_down');
-    }
-    else if (8 == e.which) { // backspace
-        buffer = buffer.slice(0, buffer.length-1);
-        update(zipper);
-        return false;  // prevent browser from handling it
-    }
-    else {
-        //console.log(e.which, e.charCode);
-    }
-});
-
-
-$(document.body).keypress(function(e) {
-    if (typeof(zipper.expr) !== 'string') {
-        var ch = String.fromCharCode(e.charCode);
-        buffer += ch;
-        var tokresult = zipper.expr.head.parse(zipper.expr)(buffer);
-        if (tokresult) {
-            buffer = tokresult[1];
-            update(new SF.Zipper(zipper.contexts, tokresult[0]));
-        }
-        else {
-            update(zipper);
-        }
-    }
-    return false;
-});
+console.log("Appending", editor);
+$(document.body).append(editor);
 
 };
+
 
 jQuery(function() {
-    main(jQuery, StructuralFramework(jQuery));
+    var SF = StructuralFramework(jQuery);
+    main(
+        jQuery, 
+        SF,
+        function(top_node, event_node) { 
+            return StructuralEditor(jQuery, SF, top_node, event_node) 
+        }
+    );
 });
 
 
