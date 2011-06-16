@@ -1,4 +1,4 @@
-StructuralFramework = function() {
+StructuralFramework = function($) {
 
 // CodeCatalog Snippet http://www.codecatalog.net/323/2/
 var for_kv = function(object, body) {
