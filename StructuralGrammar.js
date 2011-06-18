@@ -12,7 +12,6 @@ var for_kv = function(object, body) {
 };
 // End CodeCatalog Snippet
 
-
 // CodeCatalog Snippet http://www.codecatalog.net/378/2/
 var regexp_tokenizer = function(tokens) { 
     return function(str) {
@@ -37,6 +36,21 @@ var regexp_tokenizer = function(tokens) {
     }
 };
 // End CodeCatalog Snippet
+
+// CodeCatalog Snippet http://www.codecatalog.net/391/1/
+var choice_tokenizer = function(tokenizers) {
+    return function(str) {
+        for (var i = 0; i < tokenizers.length; ++i) {
+            var tokresult = tokenizers[i](str);
+            if (tokresult) {
+                return tokresult;
+            }
+        }
+        return null;
+    };
+};
+// End CodeCatalog Snippet
+
 
 // CodeCatalog Snippet http://www.codecatalog.net/368/1/
 var arguments_to_array = function(argobj) {
@@ -64,11 +78,9 @@ $$.sym = function(name) {
     return function(grammar) { return grammar(name) }
 };
 
-$$.str = function(cls) {
+$$.str = function() {
     return function(grammar) {
-        return new SF.EClass({
-            cls: cls
-        })
+        return new SF.EClass({})
     }
 };
 
@@ -82,11 +94,11 @@ $$.literal = function(str) {
     };
 };
 
-$$.token = function(rx, cls) {
+$$.token = function(rx) {
     return function(grammar) {
         var toks = {};
-        toks[rx.source] = function(m) { return $$.str(cls)(grammar).make(m[0]) };
-        return SF.Exp_box(cls, regexp_tokenizer(toks));
+        toks[rx.source] = function(m) { return $$.str()(grammar).make(m[0]) };
+        return SF.Exp_box(regexp_tokenizer(toks));
     };
 };
 

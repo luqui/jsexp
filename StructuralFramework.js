@@ -180,9 +180,8 @@ $$.EClass = object({
     nav_right: function(zipper) { return zipper.right() }
 });
 
-$$.Exp_box = function(cls, tokenizer) {
+$$.Exp_box = function(tokenizer) {
     return new $$.EClass({
-        cls: cls,
         render: function() {
             var epsilon = tokenizer('');
             // if it accepts the empty string, then assume that was parsed
@@ -203,24 +202,22 @@ $$.Exp_box = function(cls, tokenizer) {
     });
 };
 
-$$.Infix_assoc_box = function(cls, term_cls, term_tokenizer, op_cls, op_tokenizer) {
+$$.Infix_assoc_box = function(term_tokenizer, op_tokenizer) {
     return new $$.EClass({
-        cls: cls,
         make: function() {
-            var view = $$.Infix_assoc_view(cls, term_cls, term_tokenizer, op_cls, op_tokenizer);
+            var view = $$.Infix_assoc_view(term_tokenizer, op_tokenizer);
             return this.__proto__.make.call(this, view.make.apply(view, arguments));
         }
     });
 };
 
-$$.Infix_assoc_view = function(cls, term_cls, term_tokenizer, op_cls, op_tokenizer) {
+$$.Infix_assoc_view = function(term_tokenizer, op_tokenizer) {
     var slice_zipper = function(zipper, cxargs, args) {
         return new Zipper([new $$.Context(zipper.contexts[0].head, cxargs)].concat(zipper.contexts.slice(1)),
                           new $$.Expr(zipper.expr.head, args));
     };
 
     return new $$.EClass({
-        cls: cls,
         parse_insert: function(expr) {
             var self = this;
             return function(inp) {
@@ -230,7 +227,7 @@ $$.Infix_assoc_view = function(cls, term_cls, term_tokenizer, op_cls, op_tokeniz
                     inp = tokresult[1];
                     var op_tokresult = op_tokenizer(inp);
                     if (op_tokresult) {
-                        var term = $$.Exp_box(term_cls, term_tokenizer).make();
+                        var term = $$.Exp_box(term_tokenizer).make();
                         var r = tokresult[0];
                         return [ new $$.Expr(r.head, r.args.concat([ op_tokresult[0], term ])), op_tokresult[1] ];
                     }
@@ -245,7 +242,7 @@ $$.Infix_assoc_view = function(cls, term_cls, term_tokenizer, op_cls, op_tokeniz
         },
         make: function() {
             if (arguments.length == 0) {  // can't be empty
-                return this.make($$.Exp_box(term_cls, term_tokenizer).make());
+                return this.make($$.Exp_box(term_tokenizer).make());
             }
             else {
                 // XXX __proto__ instead of prototype?
@@ -382,7 +379,7 @@ $$.Zipper = object({
 });
 
 var render_head = function(head, args) {
-    var ret = elt('span', { 'class': head.cls });
+    var ret = elt('span');
     foreach(head.render.apply(head, args), function(arg) {
         ret.append(arg);
     });
