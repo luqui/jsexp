@@ -152,7 +152,7 @@ $$.EClass = object({
     render: function() {
         return arguments_to_array(arguments);
     },
-    parse: function(expr) {
+    parse_insert: function(expr) {
         return function(inp) {
             var new_args = expr.args.slice(0);
             for (var i = 0; i < expr.args.length; i++) {
@@ -162,7 +162,7 @@ $$.EClass = object({
                     continue;
                 }
                 
-                var tokresult = arg.head.parse(arg)(inp);
+                var tokresult = arg.head.parse_insert(arg)(inp);
                 if (tokresult) {
                     new_args[i] = tokresult[0];
                     inp = tokresult[1];
@@ -197,7 +197,7 @@ $$.Exp_box = function(cls, tokenizer) {
                 return [ elt('span', { 'class': 'box' }, text_node(' '))] 
             }
         },
-        parse: function(expr) {
+        parse_insert: function(expr) {
             return tokenizer;
         }
     });
@@ -221,11 +221,11 @@ $$.Infix_assoc_view = function(cls, term_cls, term_tokenizer, op_cls, op_tokeniz
 
     return new $$.EClass({
         cls: cls,
-        parse: function(expr) {
+        parse_insert: function(expr) {
             var self = this;
             return function(inp) {
                 // XXX __proto__ instead of prototype?
-                var tokresult = self.__proto__.parse.call(self, expr)(inp);
+                var tokresult = self.__proto__.parse_insert.call(self, expr)(inp);
                 if (tokresult && tokresult[1] !== '') {
                     inp = tokresult[1];
                     var op_tokresult = op_tokenizer(inp);

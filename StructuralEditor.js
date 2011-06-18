@@ -72,7 +72,7 @@ event_node.keypress(function(e) {
     if (typeof(zipper.expr) !== 'string') {
         var ch = String.fromCharCode(e.charCode);
         input_buffer += ch;
-        var tokresult = zipper.expr.head.parse(zipper.expr)(input_buffer);
+        var tokresult = zipper.expr.head.parse_insert(zipper.expr)(input_buffer);
         if (tokresult) {
             input_buffer = tokresult[1];
             update(new SF.Zipper(zipper.contexts, tokresult[0]));
