@@ -39,7 +39,7 @@ var update = function(z) {
 update(zipper);
 
 event_node.keydown(function(e) {
-    var head = typeof(zipper.expr) === 'string' ? new SF.EClass({}) : zipper.expr.head;
+    var head = typeof(zipper.expr) === 'string' ? new SF.SynClass({}) : zipper.expr.head;
 
     var navigate = function(dir) {
         input_buffer = '';

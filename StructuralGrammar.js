@@ -62,10 +62,10 @@ var arguments_to_array = function(argobj) {
 // where syntactic forms are built up as combinators.
 
 // The final representation returned by these combinators is simply an
-// EClass representing that symbol.
+// SynClass representing that symbol.
 
 // Our intermediate representation will be a simple open fixed point.
-// Grammar = String -> (Grammar -> EClass).   We will pass the final grammar
+// Grammar = String -> (Grammar -> SynClass).   We will pass the final grammar
 // to a point in the grammar so it can refer to other nonterminals within itself.  
 // As an unintended bonus, we also get grammar inheritance.
 //
@@ -80,13 +80,13 @@ $$.sym = function(name) {
 
 $$.str = function() {
     return function(grammar) {
-        return new SF.EClass({})
+        return new SF.SynClass({})
     }
 };
 
 $$.literal = function(str) {
     return function(grammar) {
-        return new SF.EClass({
+        return new SF.SynClass({
             make: function() {
                 return this.__proto__.make.call(this, str)
             }
@@ -105,7 +105,7 @@ $$.token = function(rx) {
 $$.seq = function() {
     var xs = arguments_to_array(arguments);
     return function(grammar) {
-        return new SF.EClass({
+        return new SF.SynClass({
             make: function() {
                 return this.__proto__.make.apply(
                     this,

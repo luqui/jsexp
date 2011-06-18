@@ -142,7 +142,7 @@ $$.Expr = object({
     }
 });
 
-$$.EClass = object({
+$$.SynClass = object({
     init: function(opts) {
         extend(this, opts);
     },
@@ -181,7 +181,7 @@ $$.EClass = object({
 });
 
 $$.Exp_box = function(tokenizer) {
-    return new $$.EClass({
+    return new $$.SynClass({
         render: function() {
             var epsilon = tokenizer('');
             // if it accepts the empty string, then assume that was parsed
@@ -203,7 +203,7 @@ $$.Exp_box = function(tokenizer) {
 };
 
 $$.Infix_assoc_box = function(term_tokenizer, op_tokenizer) {
-    return new $$.EClass({
+    return new $$.SynClass({
         make: function() {
             var view = $$.Infix_assoc_view(term_tokenizer, op_tokenizer);
             return this.__proto__.make.call(this, view.make.apply(view, arguments));
@@ -217,7 +217,7 @@ $$.Infix_assoc_view = function(term_tokenizer, op_tokenizer) {
                           new $$.Expr(zipper.expr.head, args));
     };
 
-    return new $$.EClass({
+    return new $$.SynClass({
         parse_insert: function(expr) {
             var self = this;
             return function(inp) {
