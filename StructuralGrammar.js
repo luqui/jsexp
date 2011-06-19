@@ -180,6 +180,14 @@ $$.sym = function(name) {
     return function(grammar) { return grammar(name) }
 };
 
+$$.empty = function(grammar) {
+    var c = new SF.SynClass({
+        open: function() { return this.make([]) },
+        parse_prefix: function(str) { return [ c.make([]), str ] }
+    });
+    return c;
+};
+
 $$.cls = function(clsname, syn) {
     return function(grammar) {
         return wrap_fields({
@@ -198,7 +206,19 @@ $$.literal = function(str) {
             },
             parse_prefix: string_tokenizer(str, function() { return c.make([str]) })
         });
-        
+        return c;
+    };
+};
+
+// "variable literal", a literal token that has multiple parsings
+$$.varlit = function(rx, tok) {
+    return function(grammar) {
+        var toks = {};
+        toks[rx.source] = function(m) { return $$.literal(tok)(grammar).open() };
+        var c = new SF.SynClass({
+            open: function() { return box_synclass(c).make([tok]) },
+            parse_prefix: regexp_tokenizer(toks)
+        });
         return c;
     };
 };
@@ -218,12 +238,13 @@ $$.token = function(rx) {
 $$.seq = function() {
     var xs = arguments_to_array(arguments);
     return function(grammar) {
-        var subsyms = xs.map(function(x) { return x(grammar) });
+        var get_subsyms = function() { return xs.map(function(x) { return x(grammar) }) };
         var c = new SF.SynClass({
             open: function() {
-                return this.make(subsyms.map(function(x) { return x.open() }));
+                return this.make(get_subsyms().map(function(x) { return x.open() }));
             },
             parse_prefix: function(str) {
+                var subsyms = get_subsyms();
                 var rs = subsyms.map(function(x) { return x.open() });
                 for (var i = 0; i < subsyms.length; i++) {
                     var tokresult = subsyms[i].parse_prefix(str);

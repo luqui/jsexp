@@ -56,11 +56,16 @@ var regexp_tokenizer = function(tokens) {
 var text_node = function(text) { return document.createTextNode(text) };
 // End CodeCatalog Snippet
 
-var top_class = SG.grammar('stmt', {
+var space = SG.varlit(/\s*/, ' ');
+
+var top_class = SG.grammar('stmts', {
+    'stmts': SG.choice(
+        SG.empty,
+        SG.seq(SG.sym('stmt'), SG.literal(';'), SG.sym('stmts'))),
     'stmt': SG.choice(
         SG.sym('var_decl'),
         SG.sym('funcall')),
-    'var_decl': SG.seq(SG.literal('var'), SG.sym('identifier'), SG.literal(';')),
+    'var_decl': SG.seq(SG.literal('var'), space, SG.sym('identifier')),
     'funcall': SG.seq(SG.sym('identifier'), SG.literal('('), SG.sym('expr'), SG.literal(')')),
     'identifier': SG.token(/[a-zA-Z_$][\w$]*/),
     'expr': SG.sym('identifier')

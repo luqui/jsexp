@@ -69,9 +69,7 @@ event_node.keydown(function(e) {
 });
 
 event_node.keypress(function(e) {
-    if (e.which == 8) {  // backspace
-        return false;
-    }
+    if (!(32 <= e.which && e.which <= 127)) return;  // non-printable
 
     if (typeof(zipper.expr) !== 'string') {
         var ch = String.fromCharCode(e.charCode);
