@@ -111,13 +111,6 @@ var range = function(left, right) {
 };
 // End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/359/1/
-var trace = function() {
-    console.log.apply(console, arguments);
-    return arguments[arguments.length-1];
-};
-// End CodeCatalog Snippet
-
 // CodeCatalog Snippet http://www.codecatalog.net/389/2/
 var splice_replace = function(e, replacements, xs) {
     var r = [];
@@ -146,8 +139,8 @@ $$.SynClass = object({
     init: function(opts) {
         extend(this, opts);
     },
-    make: function() {
-        return new $$.Expr(this, arguments_to_array(arguments));
+    make: function(args) {
+        return new $$.Expr(this, args);
     },
     render: function() {
         return arguments_to_array(arguments);
@@ -179,154 +172,6 @@ $$.SynClass = object({
     nav_left: function(zipper) { return zipper.left() },
     nav_right: function(zipper) { return zipper.right() }
 });
-
-$$.Exp_box = function(tokenizer) {
-    return new $$.SynClass({
-        render: function() {
-            var epsilon = tokenizer('');
-            // if it accepts the empty string, then assume that was parsed
-            if (epsilon) { 
-                // should return epsilon[0].head.render(); }
-                // but that gets us into a infinite loop if we return a box
-                // when parsing empty string, as we would like
-                return [] 
-            }
-            // otherwise display a visible "empty box"
-            else { 
-                return [ elt('span', { 'class': 'box' }, text_node(' '))] 
-            }
-        },
-        parse_insert: function(expr) {
-            return tokenizer;
-        }
-    });
-};
-
-$$.Infix_assoc_box = function(term_tokenizer, op_tokenizer) {
-    return new $$.SynClass({
-        make: function() {
-            var view = $$.Infix_assoc_view(term_tokenizer, op_tokenizer);
-            return this.__proto__.make.call(this, view.make.apply(view, arguments));
-        }
-    });
-};
-
-$$.Infix_assoc_view = function(term_tokenizer, op_tokenizer) {
-    var slice_zipper = function(zipper, cxargs, args) {
-        return new Zipper([new $$.Context(zipper.contexts[0].head, cxargs)].concat(zipper.contexts.slice(1)),
-                          new $$.Expr(zipper.expr.head, args));
-    };
-
-    return new $$.SynClass({
-        parse_insert: function(expr) {
-            var self = this;
-            return function(inp) {
-                // XXX __proto__ instead of prototype?
-                var tokresult = self.__proto__.parse_insert.call(self, expr)(inp);
-                if (tokresult && tokresult[1] !== '') {
-                    inp = tokresult[1];
-                    var op_tokresult = op_tokenizer(inp);
-                    if (op_tokresult) {
-                        var term = $$.Exp_box(term_tokenizer).make();
-                        var r = tokresult[0];
-                        return [ new $$.Expr(r.head, r.args.concat([ op_tokresult[0], term ])), op_tokresult[1] ];
-                    }
-                    else {
-                        return tokresult;
-                    }
-                }
-                else {
-                    return tokresult;
-                }
-            }
-        },
-        make: function() {
-            if (arguments.length == 0) {  // can't be empty
-                return this.make($$.Exp_box(term_tokenizer).make());
-            }
-            else {
-                // XXX __proto__ instead of prototype?
-                return this.__proto__.make.apply(this, arguments);
-            }
-        },
-        nav_down: function(zipper) {
-            var args = zipper.expr.args;
-
-            if (args.length == 1) {
-                return zipper.down(0);
-            }
-
-            var newargs = args.slice(0, args.length-2);  // 2 = one operand, one operator
-            var newcxargs = splice_replace(null, [null, args[args.length-2], args[args.length-1]], zipper.contexts[0].args);
-
-            return slice_zipper(zipper, newcxargs, newargs);
-        },
-        nav_up: function(zipper) {
-            var cxargs = zipper.contexts[0].args;
-            var args = zipper.expr.args;
-            if (cxargs.length == 1) {
-                return zipper.up();
-            }
-            
-            var pos = cxargs.indexOf(null);
-
-            if (pos == cxargs.length-1) {   // get the two thingies to the left
-                var newargs = cxargs.slice(cxargs.length-3, cxargs.length-1).concat(args);
-                var newcxargs = cxargs.slice(0, cxargs.length-3).concat([null]);
-            }
-            else if (pos == 0 || args.length > 1 || pos % 2 == 0) { // get the two thingies to the right
-                var newargs = args.concat(cxargs.slice(pos+1, pos+3));
-                var newcxargs = cxargs.slice(0, pos).concat([null], cxargs.slice(pos+3));
-            }
-            else {
-                // we must be on an operator
-                var newargs = [].concat([cxargs[pos-1]], args, [cxargs[pos+1]]);
-                var newcxargs = cxargs.slice(0, pos-1).concat([null], cxargs.slice(pos+2));
-            }
-            
-            return slice_zipper(zipper, newcxargs, newargs);
-        },
-        nav_right: function(zipper) {
-            var cxargs = zipper.contexts[0].args;
-            var args = zipper.expr.args;
-            var pos = cxargs.indexOf(null);
-            
-            if (cxargs.length == 1) return null;
-            if (pos == cxargs.length-1) return null;
-
-            if (args.length == 1) {
-                var newargs = [cxargs[pos+1]];
-                var newcxargs = cxargs.slice(0, pos).concat([args[0], null], cxargs.slice(pos+2));
-            }
-            else {
-                var newargs = args.slice(2).concat(cxargs.slice(pos+1, pos+3));
-                var newcxargs = cxargs.slice(0, pos).concat(args.slice(0,2), [null], cxargs.slice(pos+3));
-            }
-
-            return slice_zipper(zipper, newcxargs, newargs);
-        },
-        nav_left: function(zipper) {
-            var cxargs = zipper.contexts[0].args;
-            var args = zipper.expr.args;
-            var pos = cxargs.indexOf(null);
-            
-            if (cxargs.length == 1) return null;
-            if (pos == 0) return null;
-
-            if (args.length == 1) {
-                var newargs = [cxargs[pos-1]];
-                var newcxargs = cxargs.slice(0, pos-1).concat([null, args[0]], cxargs.slice(pos+1));
-            }
-            else {
-                var newargs = cxargs.slice(pos-2,pos).concat(args.slice(0, args.length-2));
-                var newcxargs = cxargs.slice(0, pos-2).concat([null], args.slice(args.length-2), cxargs.slice(pos+1));
-            }
-
-            return slice_zipper(zipper, newcxargs, newargs);
-        }
-    });
-};
-
 
 $$.Context = object({
     init: function(head, args) { // exactly one of args will be null, this is where the "hole" is

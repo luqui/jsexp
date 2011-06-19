@@ -56,38 +56,17 @@ var regexp_tokenizer = function(tokens) {
 var text_node = function(text) { return document.createTextNode(text) };
 // End CodeCatalog Snippet
 
-
-/*
-var Exp_eplus_box = SF.Infix_assoc_box('eplus', 
-    'eatom', regexp_tokenizer({
-        '\\d+': function(m) {
-            return Exp_eatom.make(m[0]);
-        }
-    }),
-    'plus_token', regexp_tokenizer({
-        '\\+': function(m) {
-            return Exp_plus_token.make()
-        }
-    }));
-
-var Exp_plus_token = new SF.EClass({
-    cls: 'plus_token',
-    render: function() {
-        return [text_node(' + ')]
-    }
+var top_class = SG.grammar('stmt', {
+    'stmt': SG.choice(
+        SG.sym('var_decl'),
+        SG.sym('funcall')),
+    'var_decl': SG.seq(SG.literal('var'), SG.sym('identifier'), SG.literal(';')),
+    'funcall': SG.seq(SG.sym('identifier'), SG.literal('('), SG.sym('expr'), SG.literal(')')),
+    'identifier': SG.token(/[a-zA-Z_$][\w$]*/),
+    'expr': SG.sym('identifier')
 });
 
-var Exp_eatom = new SF.EClass({
-    cls: 'eatom'
-});
-*/
-
-var top_class = SG.grammar('exp', {
-    'exp': SG.seq(SG.token(/hello/), SG.literal('+'), SG.sym('world')),
-    'world': SG.token(/world/)
-});
-
-var top_node  = top_class.make();
+var top_node  = top_class.open();
 var editor = SE(top_node, $(document));
 
 $(document.body).append(editor);

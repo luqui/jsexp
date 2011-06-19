@@ -51,6 +51,94 @@ var choice_tokenizer = function(tokenizers) {
 };
 // End CodeCatalog Snippet
 
+// CodeCatalog Snippet http://www.codecatalog.net/16/3/
+var elt = function(name, attrs) {
+    var r = $(document.createElement(name));
+    if (attrs) {
+        for (var i in attrs) {
+            r.attr(i, attrs[i]);
+        }
+    }
+    for (var i = 2; i < arguments.length; ++i) {
+        r.append(arguments[i]);
+    }
+    return r;
+};
+// End CodeCatalog Snippet
+
+// CodeCatalog Snippet http://www.codecatalog.net/256/1/
+var text_node = function(text) { return document.createTextNode(text) };
+// End CodeCatalog Snippet
+
+// CodeCatalog Snippet http://www.codecatalog.net/357/3/
+var escape_for_regexp = function(text) {
+    return text.replace(/[\]\[\\^$*+?{}\.()|]/g, function(x) { return '\\' + x });
+};
+// End CodeCatalog Snippet
+
+// CodeCatalog Snippet http://www.codecatalog.net/394/3/
+var string_tokenizer = function(str, func) {
+    var d = {};
+    d[escape_for_regexp(str)] = func;
+    return regexp_tokenizer(d);
+};
+// End CodeCatalog Snippet
+
+// CodeCatalog Snippet http://www.codecatalog.net/383/1/
+var map_tokenizer = function(f, tokenizer) {
+    return function(str) {
+        var tokresult = tokenizer(str);
+        if (tokresult) {
+            return [f(tokresult[0]), tokresult[1]];
+        }
+        else {
+            return null;
+        }
+    };
+};
+// End CodeCatalog Snippet
+
+var prefix_tokenizer = function(tokenizers) {
+    return function(str) {
+        var ret = [];
+        for (var i = 0; i < tokenizers.length; i++) {
+            var tokresult = tokenizers[i](str); 
+            if (tokresult) {
+                ret.push(tokresult[0]);
+                str = tokresult[1];
+            }
+            else {
+                return [ ret, str ];
+            }
+        }
+        return ret;
+    };
+};
+
+var nonempty_choice_tokenizer = function(tokenizers) {
+    if (tokenizers.length == 0) { return function(str) { return null } }
+    if (tokenizers.length == 1) { return tokenizers[0] }
+    
+    return function(str) {
+        for (var i = 0; i < tokenizers.length; i++) {
+            var tokresult = tokenizers[i](str);
+            if (tokresult && tokresult[1].length < str.length) {
+                return tokresult;
+            }
+        }
+        return null; // er.. if they *all* accept the empty string, then... er...
+    };
+};
+
+// CodeCatalog Snippet http://www.codecatalog.net/392/1/
+var wrap_fields = function(wrapper, dict) {
+    var ret = {};
+    for_kv(dict, function(k,v) {
+        ret[k] = k in wrapper ? wrapper[k](v) : v;
+    });
+    return ret;
+};
+// End CodeCatalog Snippet
 
 // CodeCatalog Snippet http://www.codecatalog.net/368/1/
 var arguments_to_array = function(argobj) {
@@ -74,44 +162,104 @@ var arguments_to_array = function(argobj) {
 
 var $$ = {};
 
+// a synclass for an "open box"...
+// this should be separated into two concepts: classes of actual exprs,
+// and classes of expr generators, or something.
+var box_synclass = function(cls) {
+    return new SF.SynClass({
+        render: function() {
+            return elt('span', {'class': 'box'}, text_node(' '));
+        },
+        parse_insert: function() {
+            return cls.parse_prefix;
+        }
+    });
+};
+
 $$.sym = function(name) {
     return function(grammar) { return grammar(name) }
 };
 
-$$.str = function() {
+$$.cls = function(clsname, syn) {
     return function(grammar) {
-        return new SF.SynClass({})
-    }
+        return wrap_fields({
+            render: function(render) {
+                return elt('span', {'class': clsname}, render.apply(this, arguments));
+            }
+        }, syn(grammar));
+    };
 };
 
 $$.literal = function(str) {
     return function(grammar) {
-        return new SF.SynClass({
-            make: function() {
-                return this.__proto__.make.call(this, str)
-            }
-        })
+        var c = new SF.SynClass({
+            open: function() {
+                return this.make([str]);
+            },
+            parse_prefix: string_tokenizer(str, function() { return c.make([str]) })
+        });
+        
+        return c;
     };
 };
 
 $$.token = function(rx) {
     return function(grammar) {
         var toks = {};
-        toks[rx.source] = function(m) { return $$.str()(grammar).make(m[0]) };
-        return SF.Exp_box(regexp_tokenizer(toks));
+        toks[rx.source] = function(m) { return $$.literal(m[0])(grammar).open() };
+        var c = new SF.SynClass({
+            open: function() { return box_synclass(c).make([]) },
+            parse_prefix: regexp_tokenizer(toks)
+        });
+        return c;
     };
 };
 
 $$.seq = function() {
     var xs = arguments_to_array(arguments);
     return function(grammar) {
-        return new SF.SynClass({
-            make: function() {
-                return this.__proto__.make.apply(
-                    this,
-                    xs.map(function(x) { return x(grammar).make() }))
+        var subsyms = xs.map(function(x) { return x(grammar) });
+        var c = new SF.SynClass({
+            open: function() {
+                return this.make(subsyms.map(function(x) { return x.open() }));
+            },
+            parse_prefix: function(str) {
+                var rs = subsyms.map(function(x) { return x.open() });
+                for (var i = 0; i < subsyms.length; i++) {
+                    var tokresult = subsyms[i].parse_prefix(str);
+                    if (tokresult) {
+                        rs[i] = tokresult[0];
+                        if (tokresult[1].length < str.length) { // consumed input
+                            return [ c.make(rs), tokresult[1] ]
+                        }
+                    }
+                    else {
+                        return null;
+                    }
+                }
+                // no input consumed.  the sequence accepts the empty string.
+                return [ c.make(rs), str ];
             }
-        })
+        });
+        return c;
+    };
+};
+
+$$.choice = function() {
+    if (arguments.length == 0) { throw "Empty choice node" }
+    if (arguments.length == 1) { return arguments[0] } 
+    
+    var xs = arguments_to_array(arguments);
+    return function(grammar) {
+        var c = new SF.SynClass({
+            open: function() {
+                return box_synclass(c).make([]);
+            },
+            parse_prefix: nonempty_choice_tokenizer(xs.map(function(x) {
+                return x(grammar).parse_prefix
+            }))
+        });
+        return c;
     };
 };
 

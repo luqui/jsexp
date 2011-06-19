@@ -45,7 +45,7 @@ event_node.keydown(function(e) {
         input_buffer = '';
         update(head[dir].call(head, zipper));
     };
-
+    
     if (37 == e.which) { // left
         navigate('nav_left');
     }
@@ -69,6 +69,10 @@ event_node.keydown(function(e) {
 });
 
 event_node.keypress(function(e) {
+    if (e.which == 8) {  // backspace
+        return false;
+    }
+
     if (typeof(zipper.expr) !== 'string') {
         var ch = String.fromCharCode(e.charCode);
         input_buffer += ch;
