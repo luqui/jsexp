@@ -21,69 +21,131 @@ var elt = function(name, attrs) {
 var text_node = function(text) { return document.createTextNode(text) };
 // End CodeCatalog Snippet
 
-var container = elt('div');
-
-var input_buffer = '';
-
-var zipper = new SF.Zipper([], top_node);
-
-var update = function(z) {
-    if (!z) return;
-    zipper = z;
-    container.empty();
-    container.append(elt('pre', {}, SF.render_zipper_with(z, function(t) { 
-        return elt('span', {'class': 'selected'}, t, text_node(input_buffer)) 
-    })));
+// CodeCatalog Snippet http://www.codecatalog.net/323/2/
+var for_kv = function(object, body) {
+    for (var k in object) {
+        if (object.hasOwnProperty(k)) {
+            body(k, object[k]);
+        }
+    }
 };
+// End CodeCatalog Snippet
 
-update(zipper);
+// CodeCatalog Snippet http://www.codecatalog.net/331/2/
+var object = function(methods) {
+    var constr = methods['init'] || function() {};
+    for_kv(methods, function(k,v) {
+        constr.prototype[k] = v;
+    });
+    return constr;
+};
+// End CodeCatalog Snippet
 
-event_node.keydown(function(e) {
-    var head = typeof(zipper.expr) === 'string' ? new SF.SynClass({}) : zipper.expr.head;
 
-    var navigate = function(dir) {
-        input_buffer = '';
-        update(head[dir].call(head, zipper));
-    };
-    
-    if (37 == e.which) { // left
-        navigate('nav_left');
-    }
-    else if (38 == e.which) { // up
-        navigate('nav_up');
-    }
-    else if (39 == e.which) { // right
-        navigate('nav_right');
-    }
-    else if (40 == e.which) { // down
-        navigate('nav_down');
-    }
-    else if (8 == e.which) { // backspace
-        input_buffer = input_buffer.slice(0, input_buffer.length-1);
-        update(zipper);
-        return false;  // prevent browser from handling it
-    }
-    else {
-        //console.log(e.which, e.charCode);
+
+var code_container = elt('div');
+var mode_container = elt('span', {'class': 'modeline'});
+var container = elt('div', {}, code_container, mode_container);
+
+var mode;
+
+var NormalMode = object({
+    init: function(zipper) {
+        this.zipper = zipper;
+        this.update(zipper);
+        mode_container.text('Normal');
+    },
+    keydown: function(e) {
+        var head = typeof(this.zipper.expr) === 'string' ? new SF.SynClass({}) : this.zipper.expr.head;
+
+        var navigate = function(dir) {
+            this.update(head[dir].call(head, this.zipper));
+        };
+        
+        if (37 == e.which) { // left
+            navigate('nav_left');
+        }
+        else if (38 == e.which) { // up
+            navigate('nav_up');
+        }
+        else if (39 == e.which) { // right
+            navigate('nav_right');
+        }
+        else if (40 == e.which) { // down
+            navigate('nav_down');
+        }
+        else {
+            //console.log(e.which, e.charCode);
+        }
+    },
+    keypress: function(e) {
+        var ch = String.fromCharCode(e.charCode);
+        if (ch == 'i') {
+            mode = new InsertMode(new SF.Cursor(this.zipper, 0));
+        }
+    },
+    render: function() {
+        code_container.empty();
+        code_container.append(elt('pre', {}, SF.render_zipper(this.zipper)));
+    },
+    update: function(z) {
+        if (!z) return;
+        console.log("Zipper:", z);
+        this.zipper = z;
+        this.render();
     }
 });
 
-event_node.keypress(function(e) {
-    if (!(32 <= e.which && e.which <= 127)) return;  // non-printable
+var InsertMode = object({
+    init: function(cursor) {
+        this.cursor = cursor;
+        this.input_buffer = '';
+        this.update(cursor);
+        mode_container.text('Insert');
+    },
+    keydown: function(e) {
+        if (39 == e.which) { // right
+            this.update(this.cursor.forward_token());
+        }
+        else if (8 == e.which) { // backspace
+            this.input_buffer = this.input_buffer.slice(0, this.input_buffer.length-1);
+            this.render();
+        }
+    },
+    keypress: function(e) {
+        if (!(32 <= e.which && e.which <= 127)) return;  // non-printable
 
-    if (typeof(zipper.expr) !== 'string') {
         var ch = String.fromCharCode(e.charCode);
-        input_buffer += ch;
-        var tokresult = zipper.expr.head.parse_insert(zipper.expr)(input_buffer);
+        this.input_buffer += ch;
+        console.log("buffer:", this.input_buffer);
+
+        var tokresult = this.cursor.parse_insert(this.input_buffer);
         if (tokresult) {
-            input_buffer = tokresult[1];
-            update(new SF.Zipper(zipper.contexts, tokresult[0]));
+            this.input_buffer = tokresult[1];
+            this.update(tokresult[0]);
         }
-        else {
-            update(zipper);
-        }
-    }
-    return false;
+        this.render();
+    },
+    render: function() {
+        code_container.empty();
+        code_container.append(elt('pre', {}, SF.render_cursor(this.cursor, text_node(this.input_buffer))));
+    },
+    update: function(c) {
+        if (!c) return;
+        console.log("Cursor:", c);
+        this.cursor = c;
+        this.render();
+    },
+});
+
+mode = new NormalMode(new SF.Zipper([], top_node));
+
+event_node.keydown(function(e) {
+    return mode.keydown(e);
+});
+
+event_node.keypress(function(e) {
+    return mode.keypress(e);
 });
 
 return container;

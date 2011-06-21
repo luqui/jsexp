@@ -183,6 +183,13 @@ $$.Context = object({
     }
 });
 
+
+var context_in = function(expr, pos) {
+    var args = expr.args.slice(0);
+    args[pos] = null;
+    return new $$.Context(expr.head, args);
+};
+
 $$.Zipper = object({
     init: function(contexts, expr) {
         this.contexts = contexts;
@@ -203,12 +210,9 @@ $$.Zipper = object({
     down: function(n) {
         if (!(0 <= n && typeof(this.expr) === 'object' && n < this.expr.args.length)) return null;
 
-        var args = this.expr.args.slice(0);
-        var focus = args[n];
-        args[n] = null;
-        
+        var focus = this.expr.args[n];
         return new $$.Zipper(
-            [new $$.Context(this.expr.head, args)].concat(this.contexts),
+            [context_in(this.expr, n)].concat(this.contexts),
             focus);
     },
     left: function() {
@@ -221,6 +225,84 @@ $$.Zipper = object({
         if (!u) return null;
         return u.down(this.position()+1);
     },
+});
+
+
+// A cursor is a zipper combined with a position.  The position represents a position
+// *between* symbols in the focused expression.  So we are inside some symbols above
+// us, and between symbols below us.  The position cannot be at the start or the end
+// of the focused expression, because then we are really between two symbols one level
+// up.  If the zipper's context is empty, then we can be at the start or the end.
+$$.Cursor = object({
+    // pos represents the position right before zipper.expr.args[pos].
+    init: function(zipper, pos) {
+        // normalize to invariant
+        while (zipper.contexts.length > 0) {
+            if (pos == 0) {
+                pos = zipper.position();
+                zipper = zipper.up();
+            }
+            else if (pos == zipper.expr.args.length) {
+                pos = zipper.position()+1;
+                zipper = zipper.up();
+            }
+            else {
+                break;
+            }
+        }
+        this.zipper = zipper;
+        this.pos = pos;
+    },
+    after: function() {
+        return this.zipper.expr.args[this.pos];
+    },
+    forward_token: function() {
+        var zipper = this.zipper;
+        var pos = this.pos;
+        while (typeof(this.after()) === 'object') {
+            if (zipper.expr.args.length == 0) {
+                pos = zipper.position()+1;
+                zipper = zipper.up();
+            }
+            else {
+                zipper = zipper.down(0);
+                pos = 0;
+            }
+        }
+        return new $$.Cursor(zipper, pos+1);
+    },
+    parse_insert: function(text) {
+        var expr = this.zipper.expr;
+        if (expr.args.length == 0) {
+            var tokresult = expr.head.parse_prefix(text);
+            if (tokresult) {
+                var newcursor = tokresult[0];
+                return [new $$.Cursor(
+                        new $$.Zipper(newcursor.zipper.contexts.concat(this.zipper.contexts),
+                                      newcursor.zipper.expr),
+                        newcursor.pos),
+                    tokresult[1] ];
+            }
+            else {
+                return null;
+            }
+        }
+
+        var tokresult = expr.args[this.pos].head.parse_prefix(text);
+        if (tokresult) {
+            var newcursor = tokresult[0];
+            var thiscx = new $$.Context(expr.head, 
+                [].concat(expr.args.slice(0, this.pos), [null], expr.args.slice(this.pos+1)));
+            var contexts = [].concat(newcursor.zipper.contexts, [thiscx], this.zipper.contexts);
+            return [new $$.Cursor(
+                        new $$.Zipper(contexts, newcursor.zipper.expr),
+                        newcursor.pos),
+                    tokresult[1] ];
+        }
+        else {  
+            return null;
+        }
+    }
 });
 
 var render_head = function(head, args) {
@@ -262,6 +344,20 @@ $$.render_zipper = function(zipper) {
     return $$.render_zipper_with(zipper, function(t) { 
         return elt('span', {'class': 'selected'}, t);
     });
+};
+
+$$.render_cursor = function(cursor, ins) {
+    if (typeof(ins) === 'undefined') { ins = $([]) }
+    var args = cursor.zipper.expr.args.map(function(a,i) {
+        var r = render_expr_tree(a);
+        return i == cursor.pos ? elt('span', {'class': 'cursor_selected'}, ins, r) : r;
+    });
+    if (args.length > 0 && cursor.pos == cursor.zipper.expr.length) {
+        args[args.length-1] = elt('span', {'class': 'cursor_selected_right'}, args[args.length-1], ins);
+    }
+    return render_context(
+        cursor.zipper.contexts,
+        render_head(cursor.zipper.expr.head, args));
 };
 
 return $$;

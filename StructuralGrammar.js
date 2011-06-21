@@ -170,6 +170,7 @@ var box_synclass = function(cls) {
         render: function() {
             return elt('span', {'class': 'box'}, text_node(' '));
         },
+        parse_prefix: cls.parse_prefix,
         parse_insert: function() {
             return cls.parse_prefix;
         }
@@ -180,10 +181,21 @@ $$.sym = function(name) {
     return function(grammar) { return grammar(name) }
 };
 
+var cursor = function(expr, pos) {
+    return new SF.Cursor(new SF.Zipper([], expr), pos);
+};
+
+var cons_context = function(cx, cursor) {
+    var cxs = [cx].concat(cursor.zipper.contexts);
+    return new SF.Cursor(new SF.Zipper(cxs, cursor.zipper.expr), cursor.pos);
+};
+
 $$.empty = function(grammar) {
     var c = new SF.SynClass({
         open: function() { return this.make([]) },
-        parse_prefix: function(str) { return [ c.make([]), str ] }
+        parse_prefix: function(str) { 
+            return [ cursor(c.make([]), 0), str ] 
+        }
     });
     return c;
 };
@@ -202,22 +214,11 @@ $$.literal = function(str) {
     return function(grammar) {
         var c = new SF.SynClass({
             open: function() {
-                return this.make([str]);
+                return c.make([str]);
             },
-            parse_prefix: string_tokenizer(str, function() { return c.make([str]) })
-        });
-        return c;
-    };
-};
-
-// "variable literal", a literal token that has multiple parsings
-$$.varlit = function(rx, tok) {
-    return function(grammar) {
-        var toks = {};
-        toks[rx.source] = function(m) { return $$.literal(tok)(grammar).open() };
-        var c = new SF.SynClass({
-            open: function() { return box_synclass(c).make([tok]) },
-            parse_prefix: regexp_tokenizer(toks)
+            parse_prefix: string_tokenizer(str, function() { 
+                return cursor(c.make([str]), 1);
+            })
         });
         return c;
     };
@@ -226,7 +227,9 @@ $$.varlit = function(rx, tok) {
 $$.token = function(rx) {
     return function(grammar) {
         var toks = {};
-        toks[rx.source] = function(m) { return $$.literal(m[0])(grammar).open() };
+        toks[rx.source] = function(m) {
+            return cursor($$.literal(m[0])(grammar).make([m[0]]), 1);
+        };
         var c = new SF.SynClass({
             open: function() { return box_synclass(c).make([]) },
             parse_prefix: regexp_tokenizer(toks)
@@ -251,7 +254,9 @@ $$.seq = function() {
                     if (tokresult) {
                         rs[i] = tokresult[0];
                         if (tokresult[1].length < str.length) { // consumed input
-                            return [ c.make(rs), tokresult[1] ]
+                            rs[i] = null;
+                            var newcx = new SF.Context(c, rs);
+                            return [ cons_context(newcx, tokresult[0]), tokresult[1] ]
                         }
                     }
                     else {
@@ -259,7 +264,7 @@ $$.seq = function() {
                     }
                 }
                 // no input consumed.  the sequence accepts the empty string.
-                return [ c.make(rs), str ];
+                return [ cursor(c.make(rs), rs.length), str ];
             }
         });
         return c;
