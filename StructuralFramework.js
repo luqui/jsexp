@@ -348,16 +348,23 @@ $$.render_zipper = function(zipper) {
 
 $$.render_cursor = function(cursor, ins) {
     if (typeof(ins) === 'undefined') { ins = $([]) }
-    var args = cursor.zipper.expr.args.map(function(a,i) {
-        var r = render_expr_tree(a);
-        return i == cursor.pos ? $(ins).add(elt('span', {'class': 'cursor_selected'}, r)) : r;
-    });
-    if (args.length > 0 && cursor.pos == cursor.zipper.expr.length) {
-        args[args.length-1] = elt('span', {'class': 'cursor_selected_right'}, args[args.length-1], ins);
+
+    if (cursor.zipper.expr.args.length > 0) {
+        var args = cursor.zipper.expr.args.map(function(a,i) {
+            var r = render_expr_tree(a);
+            return i == cursor.pos ? $(ins).add(elt('span', {'class': 'cursor_selected'}, r)) : r;
+        });
+        if (cursor.pos == cursor.zipper.expr.length) {
+            args[args.length-1] = elt('span', {'class': 'cursor_selected_right'}, args[args.length-1], ins);
+        }
+        var h = render_head(cursor.zipper.expr.head, args);
     }
-    return render_context(
-        cursor.zipper.contexts,
-        render_head(cursor.zipper.expr.head, args));
+    else {
+        var h = elt('span', {'class': 'cursor_selected'}, 
+                    ins, render_head(cursor.zipper.expr.head, args));
+    }
+        
+    return render_context(cursor.zipper.contexts, h);
 };
 
 return $$;
