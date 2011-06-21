@@ -136,7 +136,9 @@ var InsertMode = object({
     },
 });
 
-mode = new NormalMode(new SF.Zipper([], top_node));
+var TopCls = new SF.SynClass({});
+
+mode = new NormalMode(new SF.Zipper([], TopCls.make([top_node])));
 
 event_node.keydown(function(e) {
     return mode.keydown(e);

@@ -128,6 +128,9 @@ var splice_replace = function(e, replacements, xs) {
 
 var $$ = {};
 
+// An Expr is basically an S-expression.  The "head" is a SynClass (see below) rather than
+// a string, and the args are a list of ordered arguments, which can be either Exprs or
+// strings.  Strings represent dumb literals.
 $$.Expr = object({
     init: function(head, args) {
         this.head = head;
@@ -135,37 +138,32 @@ $$.Expr = object({
     }
 });
 
+// A SynClass represents a syntactic class, and can go at the head of an Expr.  Creating
+// a SynClass is the same as subclassing it; i.e.:
+//
+//     new SynClass({
+//         method_1: function(x) {...}
+//         method_2: function(x,y) {...}
+//     })
+//
+// In addition to the methods here, SynClasses require a 'parse_prefix' method,
+// which are a tokenizer (codecatalog.net/379/) returning a Cursor (see below),
+// positioned just after the parsed token.
 $$.SynClass = object({
     init: function(opts) {
         extend(this, opts);
     },
+
+    // Make takes Exprs/strings for args and constructs an Expr with this class
+    // at the head.  Note that this function takes a list, it is not variadic.
     make: function(args) {
         return new $$.Expr(this, args);
     },
+    
+    // Render takes a *pre_rendered* argument for each argument in the Expr's
+    // args.  It's up to this function just to stitch them together.
     render: function() {
         return arguments_to_array(arguments);
-    },
-    parse_insert: function(expr) {
-        return function(inp) {
-            var new_args = expr.args.slice(0);
-            for (var i = 0; i < expr.args.length; i++) {
-                var arg = expr.args[i];
-                if (typeof(arg) === 'string') {
-                    // skip literals, why would they type it if it's already there?  (brackets are an exception)
-                    continue;
-                }
-                
-                var tokresult = arg.head.parse_insert(arg)(inp);
-                if (tokresult) {
-                    new_args[i] = tokresult[0];
-                    inp = tokresult[1];
-                }
-                else {
-                    break;
-                }
-            }
-            return [new $$.Expr(expr.head, new_args), inp];
-        }
     },
     nav_up: function(zipper) { return zipper.up() },
     nav_down: function(zipper) { return zipper.down(0) },
@@ -173,6 +171,10 @@ $$.SynClass = object({
     nav_right: function(zipper) { return zipper.right() }
 });
 
+
+// A Context is just like an Expr, except that exactly one of its args has a "hole"
+// (represented by null).  The fill method takes an Expr and fills in the hole with
+// that Expr.
 $$.Context = object({
     init: function(head, args) { // exactly one of args will be null, this is where the "hole" is
         this.head = head;
@@ -190,16 +192,30 @@ var context_in = function(expr, pos) {
     return new $$.Context(expr.head, args);
 };
 
+// A Zipper purely represents a syntax tree with a "focused node".  It has a list of
+// contexts going from inner to outer representing the context of the focused node, and
+// an expr which is the focused node itself.  So eg, if we wanted to represent this tree
+// (in s-exp format):
+//
+//      (foo (bar b c) (baz c (quux d (hopo e) f)) (guam g))
+//
+// where the quux node is focused, we would use:
+//
+//     expr: (quux d (hopo e) f)
+//     contexts: 
+//         (baz c [])
+//         (foo (bar b c) [] (guam g))
+//
+// where we denote the hole in a context by [].
 $$.Zipper = object({
     init: function(contexts, expr) {
         this.contexts = contexts;
         this.expr = expr;
     },
+    
+    // find the position of the focused node within the innermost context
     position: function() {
         return this.contexts[0].args.indexOf(null);
-    },
-    arity: function() {
-        return this.contexts[0].args.length;
     },
     up: function() {
         if (this.contexts.length == 0) return null;
@@ -228,11 +244,15 @@ $$.Zipper = object({
 });
 
 
-// A cursor is a zipper combined with a position.  The position represents a position
-// *between* symbols in the focused expression.  So we are inside some symbols above
-// us, and between symbols below us.  The position cannot be at the start or the end
-// of the focused expression, because then we are really between two symbols one level
-// up.  If the zipper's context is empty, then we can be at the start or the end.
+// A Cursor is a Zipper combined with a position.  The position represents a position
+// *between* symbols in the focused expression.  So the Cursor is inside some symbols 
+// above us, and between two symbols in the focus.  
+//
+// The position cannot be at the start or the end of the focused expression unless 
+// the context stack is empty, because then we are really between two symbols one level
+// up.  We require that the focus has at least one child (represent an empty tree by
+// padding it with a single node with an empty child).  This requirement is just to
+// simplify an already-complicated implementation.
 $$.Cursor = object({
     // pos represents the position right before zipper.expr.args[pos].
     init: function(zipper, pos) {
@@ -258,20 +278,6 @@ $$.Cursor = object({
     },
     parse_insert: function(text) {
         var expr = this.zipper.expr;
-        if (expr.args.length == 0) {
-            var tokresult = expr.head.parse_prefix(text);
-            if (tokresult) {
-                var newcursor = tokresult[0];
-                return [new $$.Cursor(
-                        new $$.Zipper(newcursor.zipper.contexts.concat(this.zipper.contexts),
-                                      newcursor.zipper.expr),
-                        newcursor.pos),
-                    tokresult[1] ];
-            }
-            else {
-                return null;
-            }
-        }
 
         var tokresult = expr.args[this.pos].head.parse_prefix(text);
         if (tokresult) {
