@@ -141,19 +141,15 @@ $$.Expr = object({
 // A SynClass represents a syntactic class, and can go at the head of an Expr.  Creating
 // a SynClass is the same as subclassing it; i.e.:
 //
-//     new SynClass({
+//     inherit(SynClass, {
 //         method_1: function(x) {...}
 //         method_2: function(x,y) {...}
 //     })
 //
 // In addition to the methods here, SynClasses require a 'parse_prefix' method,
-// which are a tokenizer (codecatalog.net/379/) returning a Cursor (see below),
+// which returns a tokenizer (codecatalog.net/379/) returning a Cursor (see below),
 // positioned just after the parsed token.
-$$.SynClass = object({
-    init: function(opts) {
-        extend(this, opts);
-    },
-
+$$.SynClass = {
     // Make takes Exprs/strings for args and constructs an Expr with this class
     // at the head.  Note that this function takes a list, it is not variadic.
     make: function(args) {
@@ -163,13 +159,16 @@ $$.SynClass = object({
     // Render takes a *pre_rendered* argument for each argument in the Expr's
     // args.  It's up to this function just to stitch them together.
     render: function() {
-        return arguments_to_array(arguments);
+        // XXX yuck, there *has* to be a better way to do this.
+        var s = $([]);
+        foreach(arguments, function(arg) { s = s.add(arg) });
+        return s;
     },
     nav_up: function(zipper) { return zipper.up() },
     nav_down: function(zipper) { return zipper.down(0) },
     nav_left: function(zipper) { return zipper.left() },
     nav_right: function(zipper) { return zipper.right() }
-});
+};
 
 
 // A Context is just like an Expr, except that exactly one of its args has a "hole"
@@ -276,7 +275,7 @@ $$.Cursor = object({
     parse_insert: function(text) {
         var expr = this.zipper.expr;
 
-        var tokresult = expr.args[this.pos].head.parse_prefix(text);
+        var tokresult = expr.args[this.pos].head.parse_prefix()(text);
         if (tokresult) {
             var newcursor = tokresult[0];
             var thiscx = context_in(expr, this.pos);
@@ -291,21 +290,17 @@ $$.Cursor = object({
         }
     },
     cons_context: function(cx) {
-        var cxs = [cx].concat(this.zipper.contexts);
+        var cxs = this.zipper.contexts.concat([cx]);
         return new $$.Cursor(new $$.Zipper(cxs, this.zipper.expr), this.pos);
     }
 });
 
 var render_head = function(head, args) {
-    var ret = elt('span');
-    foreach(head.render.apply(head, args), function(arg) {
-        ret.append(arg);
-    });
-    return ret;
+    return elt('span', {}, head.render.apply(head, args));
 };
 
 var render_expr_tree = function(expr) {
-    if (typeof(expr) === 'string') return text_node(expr);
+    if (typeof(expr) === 'string') return $(text_node(expr));
     
     var args = [];
     foreach(expr.args, function(arg) {
@@ -345,7 +340,7 @@ $$.render_cursor = function(cursor, ins) {
             var r = render_expr_tree(a);
             return i == cursor.pos ? $(ins).add(elt('span', {'class': 'cursor_selected'}, r)) : r;
         });
-        if (cursor.pos == cursor.zipper.expr.length) {
+        if (cursor.pos == cursor.zipper.expr.args.length) {
             args[args.length-1] = elt('span', {'class': 'cursor_selected_right'}, args[args.length-1], ins);
         }
         var h = render_head(cursor.zipper.expr.head, args);

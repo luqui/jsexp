@@ -132,10 +132,10 @@ var nonempty_choice_tokenizer = function(tokenizers) {
 
 // CodeCatalog Snippet http://www.codecatalog.net/392/1/
 var wrap_fields = function(wrapper, dict) {
-    var ret = {};
-    for_kv(dict, function(k,v) {
-        ret[k] = k in wrapper ? wrapper[k](v) : v;
-    });
+    var ret = { constructor: dict.constructor };
+    for (var k in dict) {
+        ret[k] = k in wrapper ? wrapper[k](dict[k]) : dict[k];
+    }
     return ret;
 };
 // End CodeCatalog Snippet
@@ -166,14 +166,11 @@ var $$ = {};
 // this should be separated into two concepts: classes of actual exprs,
 // and classes of expr generators, or something.
 var box_synclass = function(cls) {
-    return new SF.SynClass({
+    return inherit(SF.SynClass, {
         render: function() {
             return elt('span', {'class': 'box'}, text_node(' '));
         },
-        parse_prefix: cls.parse_prefix,
-        parse_insert: function() {
-            return cls.parse_prefix;
-        }
+        parse_prefix: cls.parse_prefix
     });
 };
 
@@ -186,14 +183,15 @@ var cursor = function(expr, pos) {
 };
 
 $$.empty = function(grammar) {
-    var c = new SF.SynClass({
+    return inherit(SF.SynClass, {
         open: function() { return this.make([]) },
-        parse_prefix: function(str) { 
-            // XXX cursor violates nonempty invariant
-            return [ cursor(c.make([]), 0), str ] 
-        }
-    });
-    return c;
+        parse_prefix: method(function(self) {
+            return function(str) { 
+                // XXX cursor violates nonempty invariant
+                return [ cursor(self.make([]), 0), str ] 
+            } 
+        })
+    })
 };
 
 $$.cls = function(clsname, syn) {
@@ -206,17 +204,65 @@ $$.cls = function(clsname, syn) {
     };
 };
 
+// CodeCatalog Snippet http://www.codecatalog.net/385/2/
+var extend = function(target, src) {
+    for (var k in src) {
+        target[k] = src[k];
+    }
+    return target;
+};
+// End CodeCatalog Snippet
+
+// CodeCatalog Snippet http://www.codecatalog.net/359/1/
+var trace = function() {
+    console.log.apply(console, arguments);
+    return arguments[arguments.length-1];
+};
+// End CodeCatalog Snippet
+
+var inherit = function(o, newmethods) {
+    var F = function() {};
+    F.prototype = o;
+    return extend(new F(), newmethods);
+};
+
+var method = function(m) {
+    return function() {
+        var args = [this].concat(arguments);
+        return m.apply(this, args);
+    };
+};
+
+$$.indent = function(syn) {
+    return function(grammar) {
+        return inherit(SF.SynClass, {
+            open: function() { return this.make([syn(grammar).open()]) },
+            render: function() {
+                var subelt = this.__proto__.render.apply(this, arguments);
+                return elt('div', {'class': 'indented'}, subelt);
+            },
+            parse_prefix: function() { 
+                var self = this;
+                return map_tokenizer(function(t) {
+                    return t.cons_context(new SF.Context(self, [null]));
+                }, syn(grammar).parse_prefix());
+            }
+        });
+    };
+};
+
 $$.literal = function(str) {
     return function(grammar) {
-        var c = new SF.SynClass({
+        return inherit(SF.SynClass, {
             open: function() {
-                return c.make([str]);
+                return this.make([str]);
             },
-            parse_prefix: string_tokenizer(str, function() { 
-                return cursor(c.make([str]), 1);
+            parse_prefix: method(function(self) {
+                return string_tokenizer(str, function() { 
+                    return cursor(self.make([str]), 1);
+                })
             })
         });
-        return c;
     };
 };
 
@@ -227,11 +273,10 @@ $$.token = function(rx, canon) {
             var tok = typeof(canon) === 'undefined' ? m[0] : canon;
             return cursor($$.literal(m[0])(grammar).make([tok]), 1);
         };
-        var c = new SF.SynClass({
-            open: function() { return box_synclass(c).make([]) },
-            parse_prefix: regexp_tokenizer(toks)
+        return inherit(SF.SynClass, {
+            open: function() { return box_synclass(this).make([]) },
+            parse_prefix: function() { return regexp_tokenizer(toks) }
         });
-        return c;
     };
 };
 
@@ -239,20 +284,20 @@ $$.seq = function() {
     var xs = arguments_to_array(arguments);
     return function(grammar) {
         var get_subsyms = function() { return xs.map(function(x) { return x(grammar) }) };
-        var c = new SF.SynClass({
+        return inherit(SF.SynClass, {
             open: function() {
                 return this.make(get_subsyms().map(function(x) { return x.open() }));
             },
-            parse_prefix: function(str) {
+            parse_prefix: method(function(self) { return function(str) {
                 var subsyms = get_subsyms();
                 var rs = subsyms.map(function(x) { return x.open() });
                 for (var i = 0; i < subsyms.length; i++) {
-                    var tokresult = subsyms[i].parse_prefix(str);
+                    var tokresult = subsyms[i].parse_prefix()(str);
                     if (tokresult) {
                         rs[i] = tokresult[0];
                         if (tokresult[1].length < str.length) { // consumed input
                             rs[i] = null;
-                            var newcx = new SF.Context(c, rs);
+                            var newcx = new SF.Context(self, rs);
                             return [ tokresult[0].cons_context(newcx), tokresult[1] ]
                         }
                     }
@@ -261,10 +306,9 @@ $$.seq = function() {
                     }
                 }
                 // no input consumed.  the sequence accepts the empty string.
-                return [ cursor(c.make(rs), rs.length), str ];
-            }
+                return [ cursor(self.make(rs), rs.length), str ];
+            } })
         });
-        return c;
     };
 };
 
@@ -274,15 +318,16 @@ $$.choice = function() {
     
     var xs = arguments_to_array(arguments);
     return function(grammar) {
-        var c = new SF.SynClass({
+        return inherit(SF.SynClass, {
             open: function() {
-                return box_synclass(c).make([]);
+                return box_synclass(this).make([]);
             },
-            parse_prefix: nonempty_choice_tokenizer(xs.map(function(x) {
-                return x(grammar).parse_prefix
-            }))
+            parse_prefix: function() { 
+                return nonempty_choice_tokenizer(xs.map(function(x) {
+                    return x(grammar).parse_prefix()
+                })) 
+            }
         });
-        return c;
     };
 };
 

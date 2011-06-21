@@ -56,7 +56,7 @@ var NormalMode = object({
         mode_container.text('Normal');
     },
     keydown: function(e) {
-        var head = typeof(this.zipper.expr) === 'string' ? new SF.SynClass({}) : this.zipper.expr.head;
+        var head = typeof(this.zipper.expr) === 'string' ? SF.SynClass : this.zipper.expr.head;
         var self = this;
 
         var navigate = function(dir) {
@@ -127,7 +127,8 @@ var InsertMode = object({
     },
     render: function() {
         code_container.empty();
-        code_container.append(elt('pre', {}, SF.render_cursor(this.cursor, text_node(this.input_buffer))));
+        var newel = elt('pre', {}, SF.render_cursor(this.cursor, $(text_node(this.input_buffer))));
+        code_container.append(newel);
     },
     update: function(c) {
         if (!c) return;
@@ -136,7 +137,7 @@ var InsertMode = object({
     },
 });
 
-var TopCls = new SF.SynClass({});
+var TopCls = SF.SynClass;
 
 mode = new NormalMode(new SF.Zipper([], TopCls.make([top_node])));
 
