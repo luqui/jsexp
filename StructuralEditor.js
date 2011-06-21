@@ -90,7 +90,6 @@ var NormalMode = object({
     },
     update: function(z) {
         if (!z) return;
-        console.log("Zipper:", z);
         this.zipper = z;
         this.render();
     }
@@ -117,7 +116,6 @@ var InsertMode = object({
 
         var ch = String.fromCharCode(e.charCode);
         this.input_buffer += ch;
-        console.log("buffer:", this.input_buffer);
 
         var tokresult = this.cursor.parse_insert(this.input_buffer);
         if (tokresult) {
@@ -132,7 +130,6 @@ var InsertMode = object({
     },
     update: function(c) {
         if (!c) return;
-        console.log("Cursor:", c);
         this.cursor = c;
         this.render();
     },
