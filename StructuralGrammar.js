@@ -224,11 +224,12 @@ $$.literal = function(str) {
     };
 };
 
-$$.token = function(rx) {
+$$.token = function(rx, canon) {
     return function(grammar) {
         var toks = {};
         toks[rx.source] = function(m) {
-            return cursor($$.literal(m[0])(grammar).make([m[0]]), 1);
+            var tok = typeof(canon) === 'undefined' ? m[0] : canon;
+            return cursor($$.literal(m[0])(grammar).make([tok]), 1);
         };
         var c = new SF.SynClass({
             open: function() { return box_synclass(c).make([]) },

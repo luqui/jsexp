@@ -350,7 +350,7 @@ $$.render_cursor = function(cursor, ins) {
     if (typeof(ins) === 'undefined') { ins = $([]) }
     var args = cursor.zipper.expr.args.map(function(a,i) {
         var r = render_expr_tree(a);
-        return i == cursor.pos ? elt('span', {'class': 'cursor_selected'}, ins, r) : r;
+        return i == cursor.pos ? $(ins).add(elt('span', {'class': 'cursor_selected'}, r)) : r;
     });
     if (args.length > 0 && cursor.pos == cursor.zipper.expr.length) {
         args[args.length-1] = elt('span', {'class': 'cursor_selected_right'}, args[args.length-1], ins);
