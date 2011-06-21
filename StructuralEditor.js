@@ -57,9 +57,10 @@ var NormalMode = object({
     },
     keydown: function(e) {
         var head = typeof(this.zipper.expr) === 'string' ? new SF.SynClass({}) : this.zipper.expr.head;
+        var self = this;
 
         var navigate = function(dir) {
-            this.update(head[dir].call(head, this.zipper));
+            self.update(head[dir].call(head, self.zipper));
         };
         
         if (37 == e.which) { // left
@@ -103,12 +104,12 @@ var InsertMode = object({
         mode_container.text('Insert');
     },
     keydown: function(e) {
-        if (39 == e.which) { // right
-            this.update(this.cursor.forward_token());
-        }
-        else if (8 == e.which) { // backspace
+        if (8 == e.which) { // backspace
             this.input_buffer = this.input_buffer.slice(0, this.input_buffer.length-1);
             this.render();
+        }
+        else if (27 == e.which) { // escape
+            mode = new NormalMode(this.cursor.zipper);
         }
     },
     keypress: function(e) {

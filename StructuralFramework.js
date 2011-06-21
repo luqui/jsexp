@@ -256,21 +256,6 @@ $$.Cursor = object({
     after: function() {
         return this.zipper.expr.args[this.pos];
     },
-    forward_token: function() {
-        var zipper = this.zipper;
-        var pos = this.pos;
-        while (typeof(this.after()) === 'object') {
-            if (zipper.expr.args.length == 0) {
-                pos = zipper.position()+1;
-                zipper = zipper.up();
-            }
-            else {
-                zipper = zipper.down(0);
-                pos = 0;
-            }
-        }
-        return new $$.Cursor(zipper, pos+1);
-    },
     parse_insert: function(text) {
         var expr = this.zipper.expr;
         if (expr.args.length == 0) {
