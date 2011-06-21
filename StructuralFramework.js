@@ -282,17 +282,20 @@ $$.Cursor = object({
         var tokresult = expr.args[this.pos].head.parse_prefix(text);
         if (tokresult) {
             var newcursor = tokresult[0];
-            var thiscx = new $$.Context(expr.head, 
-                [].concat(expr.args.slice(0, this.pos), [null], expr.args.slice(this.pos+1)));
+            var thiscx = context_in(expr, this.pos);
             var contexts = [].concat(newcursor.zipper.contexts, [thiscx], this.zipper.contexts);
             return [new $$.Cursor(
                         new $$.Zipper(contexts, newcursor.zipper.expr),
                         newcursor.pos),
                     tokresult[1] ];
         }
-        else {  
+        else { 
             return null;
         }
+    },
+    cons_context: function(cx) {
+        var cxs = [cx].concat(this.zipper.contexts);
+        return new $$.Cursor(new $$.Zipper(cxs, this.zipper.expr), this.pos);
     }
 });
 

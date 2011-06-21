@@ -185,15 +185,11 @@ var cursor = function(expr, pos) {
     return new SF.Cursor(new SF.Zipper([], expr), pos);
 };
 
-var cons_context = function(cx, cursor) {
-    var cxs = [cx].concat(cursor.zipper.contexts);
-    return new SF.Cursor(new SF.Zipper(cxs, cursor.zipper.expr), cursor.pos);
-};
-
 $$.empty = function(grammar) {
     var c = new SF.SynClass({
         open: function() { return this.make([]) },
         parse_prefix: function(str) { 
+            // XXX cursor violates nonempty invariant
             return [ cursor(c.make([]), 0), str ] 
         }
     });
@@ -257,7 +253,7 @@ $$.seq = function() {
                         if (tokresult[1].length < str.length) { // consumed input
                             rs[i] = null;
                             var newcx = new SF.Context(c, rs);
-                            return [ cons_context(newcx, tokresult[0]), tokresult[1] ]
+                            return [ tokresult[0].cons_context(newcx), tokresult[1] ]
                         }
                     }
                     else {
