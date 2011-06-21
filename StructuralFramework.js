@@ -273,9 +273,6 @@ $$.Cursor = object({
         this.zipper = zipper;
         this.pos = pos;
     },
-    after: function() {
-        return this.zipper.expr.args[this.pos];
-    },
     parse_insert: function(text) {
         var expr = this.zipper.expr;
 
