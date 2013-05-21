@@ -227,15 +227,18 @@ $$.indent = function(syn) {
     };
 };
 
-$$.literal = function(str) {
+$$.literal = function(str, canon) {
+    if (typeof(canon) == 'undefined') {
+        canon = str;
+    }
     return function(grammar) {
         return inherit(SF.SynClass, {
             open: function() {
-                return this.make([str]);
+                return this.make([canon]);
             },
             parse_prefix: method(function(self) {
                 return string_tokenizer(str, function() { 
-                    return cursor(self.make([str]), 1);
+                    return cursor(self.make([canon]), 1);
                 })
             })
         });
@@ -249,6 +252,7 @@ $$.token = function(rx, canon) {
             var tok = typeof(canon) === 'undefined' ? m[0] : canon;
             return cursor($$.literal(m[0])(grammar).make([tok]), 1);
         };
+
         return inherit(SF.SynClass, {
             open: function() { return box_synclass(this).make([]) },
             parse_prefix: function() { return regexp_tokenizer(toks) }

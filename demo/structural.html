@@ -26,7 +26,7 @@ var space = SG.token(/\s*/, ' ');
 var top_class = SG.grammar('stmts', {
     'stmts': SG.choice(
         SG.empty,
-        SG.seq(SG.sym('stmt'), SG.token(/;/, ';\n'), SG.sym('stmts'))),
+        SG.seq(SG.sym('stmt'), SG.literal(';', ';\n'), SG.sym('stmts'))),
     'stmt': SG.choice(
         SG.sym('var_decl'),
         SG.sym('funcall')),
