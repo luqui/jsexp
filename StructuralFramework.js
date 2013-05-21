@@ -142,8 +142,8 @@ $$.SynClass = {
     },
     nav_up: function(zipper) { return zipper.up() },
     nav_down: function(zipper) { return zipper.down(0) },
-    nav_left: function(zipper) { return zipper.left() },
-    nav_right: function(zipper) { return zipper.right() }
+    nav_left: function(zipper) { return zipper.smart_left() },
+    nav_right: function(zipper) { return zipper.smart_right() }
 };
 
 
@@ -216,6 +216,14 @@ $$.Zipper = object({
         if (!u) return null;
         return u.down(this.position()+1);
     },
+
+    smart_left: function() {
+        return this.left() || this.up();
+    },
+    
+    smart_right: function() {
+        return this.right() || this.up();
+    }
 });
 
 
