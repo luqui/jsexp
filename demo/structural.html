@@ -21,53 +21,6 @@
 // main : jQuery * StructuralFramework * (top_node -> StructuralEditor) -> Module
 var main = function($, SF, SG, SE) {
 
-var for_kv = function(object, body) {
-    for (var k in object) {
-        if (object.hasOwnProperty(k)) {
-            body(k, object[k]);
-        }
-    }
-};
-
-
-var regexp_tokenizer = function(tokens) { 
-    return function(str) {
-        var bestMatch = null;
-        var bestFunc = null; 
-        for_kv(tokens, function(k,v) {
-            var m = new RegExp('^' + k)(str);
-            if (m && (!bestMatch || m[0].length > bestMatch[0].length)) {
-                bestMatch = m;
-                bestFunc = v;
-            }
-        });
-
-        // don't match the whole string in case we are in the middle of typing a token
-        // we use \0 to mean "eof" so this will pass.
-        if (bestFunc && bestMatch[0].length < str.length) {
-            return [bestFunc(bestMatch), str.slice(bestMatch[0].length)];
-        }
-        else {
-            return null;
-        }
-    }
-};
-
-var text_node = function(text) { return document.createTextNode(text) };
-
-var elt = function(name, attrs) {
-    var r = $(document.createElement(name));
-    if (attrs) {
-        for (var i in attrs) {
-            r.attr(i, attrs[i]);
-        }
-    }
-    for (var i = 2; i < arguments.length; ++i) {
-        r.append(arguments[i]);
-    }
-    return r;
-};
-
 var space = SG.token(/\s*/, ' ');
 
 var top_class = SG.grammar('stmts', {

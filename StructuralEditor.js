@@ -99,6 +99,7 @@ var InsertMode = object({
         if (8 == e.which) { // backspace
             this.input_buffer = this.input_buffer.slice(0, this.input_buffer.length-1);
             this.render();
+            return false;
         }
         else if (27 == e.which) { // escape
             mode = new NormalMode(this.cursor.zipper);
