@@ -3,7 +3,6 @@
 
 StructuralFramework = function($) {
 
-// CodeCatalog Snippet http://www.codecatalog.net/323/2/
 var for_kv = function(object, body) {
     for (var k in object) {
         if (object.hasOwnProperty(k)) {
@@ -11,9 +10,7 @@ var for_kv = function(object, body) {
         }
     }
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/331/2/
 var object = function(methods) {
     var constr = methods['init'] || function() {};
     for_kv(methods, function(k,v) {
@@ -21,9 +18,7 @@ var object = function(methods) {
     });
     return constr;
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/16/3/
 var elt = function(name, attrs) {
     var r = $(document.createElement(name));
     if (attrs) {
@@ -36,21 +31,15 @@ var elt = function(name, attrs) {
     }
     return r;
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/279/1/
 var foreach = function(array, body) {
     for (var i = 0; i < array.length; ++i) {
         body(array[i]);
     }
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/256/1/
 var text_node = function(text) { return document.createTextNode(text) };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/366/2/
 var replace = function(e, replacement, xs) {
     var r = [];
     foreach(xs, function(x) {
@@ -63,22 +52,16 @@ var replace = function(e, replacement, xs) {
     });
     return r;
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/368/1/
 var arguments_to_array = function(argobj) {
     return Array.prototype.slice.call(argobj);
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/370/1/
 var flatten = function(AoA) {
     return Array.prototype.concat.apply([], AoA);
 };
-// End CodeCatalog Snippet
 
 
-// CodeCatalog Snippet http://www.codecatalog.net/383/1/
 var map_tokenizer = function(f, tokenizer) {
     return function(str) {
         var tokresult = tokenizer(str);
@@ -90,18 +73,14 @@ var map_tokenizer = function(f, tokenizer) {
         }
     };
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/385/2/
 var extend = function(target, src) {
     for (var k in src) {
         target[k] = src[k];
     }
     return target;
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/387/1/
 var range = function(left, right) {
     var r = [];
     for (var i = left; i < right; i++) {
@@ -109,9 +88,7 @@ var range = function(left, right) {
     }
     return r;
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/389/2/
 var splice_replace = function(e, replacements, xs) {
     var r = [];
     foreach(xs, function(x) {
@@ -124,7 +101,6 @@ var splice_replace = function(e, replacements, xs) {
     });
     return r;
 };
-// End CodeCatalog Snippet
 
 var $$ = {};
 

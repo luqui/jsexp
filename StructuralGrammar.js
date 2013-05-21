@@ -2,7 +2,6 @@
 
 StructuralGrammar = function(SF) {
 
-// CodeCatalog Snippet http://www.codecatalog.net/323/2/
 var for_kv = function(object, body) {
     for (var k in object) {
         if (object.hasOwnProperty(k)) {
@@ -10,9 +9,7 @@ var for_kv = function(object, body) {
         }
     }
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/378/2/
 var regexp_tokenizer = function(tokens) { 
     return function(str) {
         var bestMatch = null;
@@ -35,9 +32,7 @@ var regexp_tokenizer = function(tokens) {
         }
     }
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/391/1/
 var choice_tokenizer = function(tokenizers) {
     return function(str) {
         for (var i = 0; i < tokenizers.length; ++i) {
@@ -49,9 +44,7 @@ var choice_tokenizer = function(tokenizers) {
         return null;
     };
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/16/3/
 var elt = function(name, attrs) {
     var r = $(document.createElement(name));
     if (attrs) {
@@ -64,27 +57,19 @@ var elt = function(name, attrs) {
     }
     return r;
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/256/1/
 var text_node = function(text) { return document.createTextNode(text) };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/357/3/
 var escape_for_regexp = function(text) {
     return text.replace(/[\]\[\\^$*+?{}\.()|]/g, function(x) { return '\\' + x });
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/394/3/
 var string_tokenizer = function(str, func) {
     var d = {};
     d[escape_for_regexp(str)] = func;
     return regexp_tokenizer(d);
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/383/1/
 var map_tokenizer = function(f, tokenizer) {
     return function(str) {
         var tokresult = tokenizer(str);
@@ -96,7 +81,6 @@ var map_tokenizer = function(f, tokenizer) {
         }
     };
 };
-// End CodeCatalog Snippet
 
 var prefix_tokenizer = function(tokenizers) {
     return function(str) {
@@ -130,7 +114,6 @@ var nonempty_choice_tokenizer = function(tokenizers) {
     };
 };
 
-// CodeCatalog Snippet http://www.codecatalog.net/392/1/
 var wrap_fields = function(wrapper, dict) {
     var ret = { constructor: dict.constructor };
     for (var k in dict) {
@@ -138,13 +121,10 @@ var wrap_fields = function(wrapper, dict) {
     }
     return ret;
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/368/1/
 var arguments_to_array = function(argobj) {
     return Array.prototype.slice.call(argobj);
 };
-// End CodeCatalog Snippet
 
 // A grammar is an object that maps nonterminal names to syntactic forms,
 // where syntactic forms are built up as combinators.
@@ -204,21 +184,17 @@ $$.cls = function(clsname, syn) {
     };
 };
 
-// CodeCatalog Snippet http://www.codecatalog.net/385/2/
 var extend = function(target, src) {
     for (var k in src) {
         target[k] = src[k];
     }
     return target;
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/359/1/
 var trace = function() {
     console.log.apply(console, arguments);
     return arguments[arguments.length-1];
 };
-// End CodeCatalog Snippet
 
 var inherit = function(o, newmethods) {
     var F = function() {};

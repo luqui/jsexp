@@ -21,7 +21,6 @@
 // main : jQuery * StructuralFramework * (top_node -> StructuralEditor) -> Module
 var main = function($, SF, SG, SE) {
 
-// CodeCatalog Snippet http://www.codecatalog.net/323/2/
 var for_kv = function(object, body) {
     for (var k in object) {
         if (object.hasOwnProperty(k)) {
@@ -29,10 +28,8 @@ var for_kv = function(object, body) {
         }
     }
 };
-// End CodeCatalog Snippet
 
 
-// CodeCatalog Snippet http://www.codecatalog.net/378/2/
 var regexp_tokenizer = function(tokens) { 
     return function(str) {
         var bestMatch = null;
@@ -55,13 +52,9 @@ var regexp_tokenizer = function(tokens) {
         }
     }
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/256/1/
 var text_node = function(text) { return document.createTextNode(text) };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/16/3/
 var elt = function(name, attrs) {
     var r = $(document.createElement(name));
     if (attrs) {
@@ -74,7 +67,6 @@ var elt = function(name, attrs) {
     }
     return r;
 };
-// End CodeCatalog Snippet
 
 var space = SG.token(/\s*/, ' ');
 

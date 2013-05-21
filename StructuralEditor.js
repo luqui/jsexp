@@ -2,7 +2,6 @@
 
 StructuralEditor = function($, SF, top_node, event_node) {
 
-// CodeCatalog Snippet http://www.codecatalog.net/16/3/
 var elt = function(name, attrs) {
     var r = $(document.createElement(name));
     if (attrs) {
@@ -15,13 +14,9 @@ var elt = function(name, attrs) {
     }
     return r;
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/256/1/
 var text_node = function(text) { return document.createTextNode(text) };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/323/2/
 var for_kv = function(object, body) {
     for (var k in object) {
         if (object.hasOwnProperty(k)) {
@@ -29,9 +24,7 @@ var for_kv = function(object, body) {
         }
     }
 };
-// End CodeCatalog Snippet
 
-// CodeCatalog Snippet http://www.codecatalog.net/331/2/
 var object = function(methods) {
     var constr = methods['init'] || function() {};
     for_kv(methods, function(k,v) {
@@ -39,7 +32,6 @@ var object = function(methods) {
     });
     return constr;
 };
-// End CodeCatalog Snippet
 
 
 
