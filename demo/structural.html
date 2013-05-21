@@ -7,7 +7,7 @@
 
   <style>
    .eatom { color: red }
-   .selected { background: #fdd }
+   .selected { border: 1px solid blue; }
    .box { background: lightgreen }
    .unparsed { opacity: 0.5 }
    .cursor_selected { border-left: 1px solid blue }
@@ -26,7 +26,7 @@ var space = SG.token(/\s*/, ' ');
 var top_class = SG.grammar('stmts', {
     'stmts': SG.choice(
         SG.empty,
-        SG.seq(SG.sym('stmt'), SG.token(/;/, ';\n'), SG.indent(SG.sym('stmts')))),
+        SG.seq(SG.sym('stmt'), SG.token(/;/, ';\n'), SG.sym('stmts'))),
     'stmt': SG.choice(
         SG.sym('var_decl'),
         SG.sym('funcall')),
