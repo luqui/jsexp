@@ -140,10 +140,15 @@ $$.SynClass = {
         foreach(arguments, function(arg) { s = s.add(arg) });
         return s;
     },
-    nav_up: function(zipper) { return zipper.up() },
-    nav_down: function(zipper) { return zipper.down(0) },
-    nav_left: function(zipper) { return zipper.smart_left() },
-    nav_right: function(zipper) { return zipper.smart_right() }
+
+    actions: function(zipper) {
+        return {
+            up: function() { return zipper.up() },
+            down: function() { return zipper.down(0) },
+            left: function() { return zipper.left() || zipper.up() },
+            right: function() { return zipper.right() || zipper.up() }
+        };
+    }
 };
 
 
@@ -215,14 +220,6 @@ $$.Zipper = object({
         var u = this.up();
         if (!u) return null;
         return u.down(this.position()+1);
-    },
-
-    smart_left: function() {
-        return this.left() || this.up();
-    },
-    
-    smart_right: function() {
-        return this.right() || this.up();
     }
 });
 

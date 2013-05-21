@@ -34,10 +34,18 @@ var object = function(methods) {
 };
 
 
+var action_map = {
+    left:  { key: '&larr;', keycode: 37 },
+    up:    { key: '&uarr;', keycode: 38 },
+    right: { key: '&rarr;', keycode: 39 },
+    down:  { key: '&darr;', keycode: 40 }
+};
+
 
 var code_container = elt('div');
 var mode_container = elt('span', {'class': 'modeline'});
-var container = elt('div', {}, code_container, mode_container);
+var help_container = elt('div');
+var container = elt('div', {}, code_container, mode_container, help_container);
 
 var mode;
 
@@ -47,29 +55,23 @@ var NormalMode = object({
         this.update(zipper);
         mode_container.text('Normal');
     },
+    get_head: function() {
+        return typeof(this.zipper.expr) === 'string' ? SF.SynClass : this.zipper.expr.head;
+    },
     keydown: function(e) {
-        var head = typeof(this.zipper.expr) === 'string' ? SF.SynClass : this.zipper.expr.head;
+        var head = this.get_head();
         var self = this;
 
         var navigate = function(dir) {
-            self.update(head[dir].call(head, self.zipper));
+            self.update(head.actions(self.zipper)[dir].call(head));
         };
-        
-        if (37 == e.which) { // left
-            navigate('nav_left');
-        }
-        else if (38 == e.which) { // up
-            navigate('nav_up');
-        }
-        else if (39 == e.which) { // right
-            navigate('nav_right');
-        }
-        else if (40 == e.which) { // down
-            navigate('nav_down');
-        }
-        else {
-            //console.log(e.which, e.charCode);
-        }
+
+        for_kv(head.actions(self.zipper), function(k,v) {
+            if (action_map[k] && action_map[k].keycode == e.which) {
+                self.update(v.call(head));
+            }
+        });
+        //console.log(e.which, e.charCode);
     },
     keypress: function(e) {
         var ch = String.fromCharCode(e.charCode);
@@ -80,6 +82,23 @@ var NormalMode = object({
     render: function() {
         code_container.empty();
         code_container.append(elt('pre', {}, SF.render_zipper(this.zipper)));
+        this.render_help();
+    },
+    render_help: function() {
+        var head = this.get_head();
+        var self = this;
+        help_container.empty();
+
+        var table = elt('table');
+        help_container.append(table);
+        for_kv(head.actions(self.zipper), function(k,v) {
+            if (action_map[k]) {
+                table.append(
+                    elt('tr', {},
+                        elt('td', {}, text_node(k + " : ")),
+                        elt('td', {}, action_map[k].key)));
+            }
+        });
     },
     update: function(z) {
         if (!z) return;
