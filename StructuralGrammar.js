@@ -15,7 +15,7 @@ var regexp_tokenizer = function(tokens) {
         var bestMatch = null;
         var bestFunc = null; 
         for_kv(tokens, function(k,v) {
-            var m = new RegExp('^' + k)(str);
+            var m = new RegExp('^' + k).exec(str);
             if (m && (!bestMatch || m[0].length > bestMatch[0].length)) {
                 bestMatch = m;
                 bestFunc = v;

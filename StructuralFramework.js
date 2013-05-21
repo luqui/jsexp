@@ -251,7 +251,8 @@ $$.Cursor = object({
     parse_insert: function(text) {
         var expr = this.zipper.expr;
 
-        var tokresult = expr.args[this.pos].head.parse_prefix()(text);
+        var tokenizer = expr.args[this.pos].head.parse_prefix();
+        var tokresult = tokenizer(text);
         if (tokresult) {
             var newcursor = tokresult[0];
             var thiscx = context_in(expr, this.pos);
