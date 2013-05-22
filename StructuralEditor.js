@@ -63,12 +63,12 @@ var NormalMode = object({
         var self = this;
 
         var navigate = function(dir) {
-            self.update(head.actions(self.zipper)[dir].call(head));
+            self.update(self.zipper.actions()[dir]());
         };
 
-        for_kv(head.actions(self.zipper), function(k,v) {
+        for_kv(self.zipper.actions(), function(k,v) {
             if (action_map[k] && action_map[k].keycode == e.which) {
-                self.update(v.call(head));
+                self.update(v());
             }
         });
         //console.log(e.which, e.charCode);
@@ -91,7 +91,7 @@ var NormalMode = object({
 
         var table = elt('table');
         help_container.append(table);
-        for_kv(head.actions(self.zipper), function(k,v) {
+        for_kv(self.zipper.actions(), function(k,v) {
             if (action_map[k]) {
                 table.append(
                     elt('tr', {},

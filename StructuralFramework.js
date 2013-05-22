@@ -143,8 +143,13 @@ $$.SynClass = {
 
     actions: function(zipper) {
         return {
-            up: function() { return zipper.up() },
             down: function() { return zipper.down(0) },
+        };
+    },
+
+    context_actions: function(zipper) {
+        return {
+            up: function() { return zipper.up() },
             left: function() { return zipper.left() || zipper.up() },
             right: function() { return zipper.right() || zipper.up() }
         };
@@ -220,6 +225,16 @@ $$.Zipper = object({
         var u = this.up();
         if (!u) return null;
         return u.down(this.position()+1);
+    },
+
+    actions: function() {
+        return extend(
+            (this.contexts.length == 0 
+                ? {} 
+                : this.contexts[0].head.context_actions(this)),  
+            (typeof(this.expr) === 'object'
+                ? this.expr.head.actions(this)
+                : {}));
     }
 });
 
