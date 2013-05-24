@@ -62,18 +62,6 @@ var flatten = function(AoA) {
 };
 
 
-var map_tokenizer = function(f, tokenizer) {
-    return function(str) {
-        var tokresult = tokenizer(str);
-        if (tokresult) {
-            return [f(tokresult[0]), tokresult[1]];
-        }
-        else {
-            return null;
-        }
-    };
-};
-
 var extend = function(target, src) {
     for (var k in src) {
         target[k] = src[k];

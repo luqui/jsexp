@@ -4,6 +4,7 @@
   <script src="../StructuralFramework.js"></script>
   <script src="../StructuralEditor.js"></script>
   <script src="../StructuralGrammar.js"></script>
+  <script src="../Tokenizers.js"></script>
 
   <style>
    .eatom { color: red }
@@ -49,7 +50,8 @@ $(document.body).append(editor);
 
 jQuery(function() {
     var SF = StructuralFramework(jQuery);
-    var SG = StructuralGrammar(SF);
+    var Tok = Tokenizers();
+    var SG = StructuralGrammar(SF, Tok);
     main(
         jQuery, 
         SF,

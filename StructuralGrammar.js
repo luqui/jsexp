@@ -1,49 +1,6 @@
 // StucturalGrammar : StructuralFramework -> Module
 
-StructuralGrammar = function(SF) {
-
-var for_kv = function(object, body) {
-    for (var k in object) {
-        if (object.hasOwnProperty(k)) {
-            body(k, object[k]);
-        }
-    }
-};
-
-var regexp_tokenizer = function(tokens) { 
-    return function(str) {
-        var bestMatch = null;
-        var bestFunc = null; 
-        for_kv(tokens, function(k,v) {
-            var m = new RegExp('^' + k).exec(str);
-            if (m && (!bestMatch || m[0].length > bestMatch[0].length)) {
-                bestMatch = m;
-                bestFunc = v;
-            }
-        });
-
-        // don't match the whole string in case we are in the middle of typing a token
-        // we use \0 to mean "eof" so this will pass.
-        if (bestFunc && bestMatch[0].length < str.length) {
-            return [bestFunc(bestMatch), str.slice(bestMatch[0].length)];
-        }
-        else {
-            return null;
-        }
-    }
-};
-
-var choice_tokenizer = function(tokenizers) {
-    return function(str) {
-        for (var i = 0; i < tokenizers.length; ++i) {
-            var tokresult = tokenizers[i](str);
-            if (tokresult) {
-                return tokresult;
-            }
-        }
-        return null;
-    };
-};
+StructuralGrammar = function(SF, Tok) {
 
 var elt = function(name, attrs) {
     var r = $(document.createElement(name));
@@ -59,60 +16,6 @@ var elt = function(name, attrs) {
 };
 
 var text_node = function(text) { return document.createTextNode(text) };
-
-var escape_for_regexp = function(text) {
-    return text.replace(/[\]\[\\^$*+?{}\.()|]/g, function(x) { return '\\' + x });
-};
-
-var string_tokenizer = function(str, func) {
-    var d = {};
-    d[escape_for_regexp(str)] = func;
-    return regexp_tokenizer(d);
-};
-
-var map_tokenizer = function(f, tokenizer) {
-    return function(str) {
-        var tokresult = tokenizer(str);
-        if (tokresult) {
-            return [f(tokresult[0]), tokresult[1]];
-        }
-        else {
-            return null;
-        }
-    };
-};
-
-var prefix_tokenizer = function(tokenizers) {
-    return function(str) {
-        var ret = [];
-        for (var i = 0; i < tokenizers.length; i++) {
-            var tokresult = tokenizers[i](str); 
-            if (tokresult) {
-                ret.push(tokresult[0]);
-                str = tokresult[1];
-            }
-            else {
-                return [ ret, str ];
-            }
-        }
-        return ret;
-    };
-};
-
-var nonempty_choice_tokenizer = function(tokenizers) {
-    if (tokenizers.length == 0) { return function(str) { return null } }
-    if (tokenizers.length == 1) { return tokenizers[0] }
-    
-    return function(str) {
-        for (var i = 0; i < tokenizers.length; i++) {
-            var tokresult = tokenizers[i](str);
-            if (tokresult && tokresult[1].length < str.length) {
-                return tokresult;
-            }
-        }
-        return null; // er.. if they *all* accept the empty string, then... er...
-    };
-};
 
 var wrap_fields = function(wrapper, dict) {
     var ret = { constructor: dict.constructor };
@@ -219,7 +122,7 @@ $$.indent = function(syn) {
             },
             parse_prefix: function() { 
                 var self = this;
-                return map_tokenizer(function(t) {
+                return Tok.map(function(t) {
                     return t.cons_context(new SF.Context(self, [null]));
                 }, syn(grammar).parse_prefix());
             }
@@ -237,7 +140,7 @@ $$.literal = function(str, canon) {
                 return this.make([canon]);
             },
             parse_prefix: method(function(self) {
-                return string_tokenizer(str, function() { 
+                return Tok.string(str, function() { 
                     return cursor(self.make([canon]), 1);
                 })
             })
@@ -255,7 +158,7 @@ $$.token = function(rx, canon) {
 
         return inherit(SF.SynClass, {
             open: function() { return box_synclass(this).make([]) },
-            parse_prefix: function() { return regexp_tokenizer(toks) }
+            parse_prefix: function() { return Tok.regexp(toks) }
         });
     };
 };
@@ -303,7 +206,7 @@ $$.choice = function() {
                 return box_synclass(this).make([]);
             },
             parse_prefix: function() { 
-                return nonempty_choice_tokenizer(xs.map(function(x) {
+                return Tok.nonempty_choice(xs.map(function(x) {
                     return x(grammar).parse_prefix()
                 })) 
             }
