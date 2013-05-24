@@ -29,8 +29,11 @@ var top_class = SG.grammar('stmts', {
         SG.seq(SG.sym('stmt'), SG.literal(';', ';\n'), SG.sym('stmts'))),
     'stmt': SG.choice(
         SG.sym('var_decl'),
+        SG.sym('if_expr'),
         SG.sym('funcall')),
     'var_decl': SG.seq(SG.literal('var'), space, SG.sym('identifier')),
+    'if_expr': SG.seq(SG.literal('if'), space, SG.literal('('), SG.sym('expr'), SG.literal(')'), space, 
+                SG.literal('{', '{\n'), SG.indent(SG.sym('stmts')), SG.literal('}')),
     'funcall': SG.seq(SG.sym('identifier'), SG.literal('('), SG.sym('expr'), SG.literal(')')),
     'identifier': SG.token(/[a-zA-Z_$][\w$]*/),
     'expr': SG.sym('identifier')
