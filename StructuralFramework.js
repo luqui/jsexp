@@ -1,7 +1,7 @@
 
-// StructuralFramework : jQuery -> Module
+// StructuralFramework : (jQuery, Tokenizers) -> Module
 
-StructuralFramework = function($) {
+StructuralFramework = function($, Tok) {
 
 var for_kv = function(object, body) {
     for (var k in object) {
@@ -260,7 +260,7 @@ $$.Cursor = object({
         var expr = this.zipper.expr;
 
         var tokenizer = expr.args[this.pos].head.parse_prefix();
-        var tokresult = tokenizer(text);
+        var tokresult = Tok.run_tokenizer(tokenizer, text);
         if (tokresult) {
             var newcursor = tokresult[0];
             var thiscx = context_in(expr, this.pos);

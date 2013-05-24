@@ -49,8 +49,8 @@ $(document.body).append(editor);
 
 
 jQuery(function() {
-    var SF = StructuralFramework(jQuery);
     var Tok = Tokenizers();
+    var SF = StructuralFramework(jQuery, Tok);
     var SG = StructuralGrammar(SF, Tok);
     main(
         jQuery, 

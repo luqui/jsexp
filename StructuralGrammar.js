@@ -69,10 +69,10 @@ $$.empty = function(grammar) {
     return inherit(SF.SynClass, {
         open: function() { return this.make([]) },
         parse_prefix: method(function(self) {
-            return function(str) { 
+            return Tok.HACK_wrap(function(str) {
                 // XXX cursor violates nonempty invariant
                 return [ cursor(self.make([]), 0), str ] 
-            } 
+            }) 
         })
     })
 };
@@ -171,11 +171,11 @@ $$.seq = function() {
             open: function() {
                 return this.make(get_subsyms().map(function(x) { return x.open() }));
             },
-            parse_prefix: method(function(self) { return function(str) {
+            parse_prefix: method(function(self) { return Tok.HACK_wrap(function(str) {
                 var subsyms = get_subsyms();
                 var rs = subsyms.map(function(x) { return x.open() });
                 for (var i = 0; i < subsyms.length; i++) {
-                    var tokresult = subsyms[i].parse_prefix()(str);
+                    var tokresult = Tok.run_tokenizer(subsyms[i].parse_prefix(), str);
                     if (tokresult) {
                         rs[i] = tokresult[0];
                         if (tokresult[1].length < str.length) { // consumed input
@@ -190,7 +190,7 @@ $$.seq = function() {
                 }
                 // no input consumed.  the sequence accepts the empty string.
                 return [ cursor(self.make(rs), rs.length), str ];
-            } })
+            }) })
         });
     };
 };
